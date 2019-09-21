@@ -87,11 +87,6 @@ In your controller :
     }
 
 Next go to http:// YOUR URL.com/ExactRequest Your authentication login will be required, this session will expire after 10 minutes If you want to keep this session active, you need to replace function init() by refreshToken()
-
-
-<h5>Note</h5> 
-You have Only 1 minute after your first Authentication to create cron job because this session will expire
-
 <hr/>
 <h1>Usage</h1>
 
