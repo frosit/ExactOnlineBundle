@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 
 use aibianchi\ExactOnlineBundle\Model\Me;
-use aibianchi\ExactOnlineBundle\Model\Account; 
+use aibianchi\ExactOnlineBundle\Model\Account;
 use aibianchi\ExactOnlineBundle\Model\Item;
 
 /**
@@ -21,17 +21,17 @@ class DefaultController extends Controller
 {
     public function indexAction(Request $request)
     {
-        
-        $code = $request->query->get('code');
+
+       /* $code = $request->query->get('code');
         $exactManager = $this->get("exact_online.manager");
         $exactManager->init($code);
 
         /*
         * TESTED SECTION
         */
-       
-       
-        $listAccount = $exactManager->getModel("Account")->getList(2,45);
+
+
+       /* $listAccount = $exactManager->getModel("Account")->getList(2,45);
         foreach ($list->Account as $account){
             dump($account);
         }
@@ -68,6 +68,6 @@ class DefaultController extends Controller
         //$exactManager->remove($account);*/
 
         return new JsonResponse("status :: ok");
-       
+
     }
 }
