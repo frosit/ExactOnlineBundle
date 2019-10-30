@@ -103,8 +103,7 @@ class ExactManager {
     * @return void
     */
     public function update($entity){
-        $skipNullValues = true;
-        $json     = $entity->toJson($skipNullValues);
+        $json     = $entity->toJson();
         $keyField = $this->getKeyField();
         $getter   = "get".$keyField;
         $url      = $entity->getUrl()."(guid'".$entity->$getter()."')";
