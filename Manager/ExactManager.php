@@ -8,9 +8,9 @@ use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
 use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
 
 /**
- * Exact Manager
- * Author: Jefferson Bianchi
- * Mail  : Jefferson@aibianchi.com
+ * Author: Jefferson Bianchi <Jefferson@aibianchi.com>
+ * Author: Nils méchin <nils@zangra.com>
+ * Author: Maxime Lambot <maxime@lambot.com>
  */
 class ExactManager {
 

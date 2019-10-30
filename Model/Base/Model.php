@@ -2,33 +2,28 @@
 
 namespace aibianchi\ExactOnlineBundle\Model\Base;
 
-use aibianchi\ExactOnlineBundle\DAO\Connection;
-
 /**
- * Author: Jefferson Bianchi
- * Email : Jefferson@aibianchi.com
+ * Author: Jefferson Bianchi <Jefferson@aibianchi.com>
+ * Author: Nils méchin <nils@zangra.com>
+ * Author: Maxime Lambot <maxime@lambot.com>
  */
-abstract class Model {
-
-    public function toJson(){
-
-         $json = array();
-            foreach($this as $key => $value) {
-
-                if ( $key === "url" or $key === "primaryKey" ){
-                    continue;
-                }
-
-                if (null === $value) {
-                    continue;
-                }
-
-                $json[$key] = $value;
+abstract class Model
+{
+    public function toJson($skipNullValues = null)
+    {
+        $json = array();
+        foreach ($this as $key => $value) {
+            if ('url' === $key or 'primaryKey' === $key) {
+                continue;
             }
-            dump($json);
-            return json_encode($json);
+
+            if (null === $value) {
+                continue;
+            }
+
+            $json[$key] = $value;
+        }
+
+        return json_encode($json);
     }
-
 }
-
-?>
