@@ -127,23 +127,23 @@ class Connection{
 
     public static function refreshAccessToken()
     {
+        if (self::isExpired()) {
+            $Exact  = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
+            $url    = self::$baseUrl.self::$tokenUrl;
+            $client =  new Client();
 
-        $Exact  = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
-        $url    = self::$baseUrl.self::$tokenUrl;
-        $client =  new Client();
-
-        $response = $client->post($url, array(
-            'form_params' => array(
-                'refresh_token' => $Exact->getRefreshToken(),
-                'grant_type'    => "refresh_token",
-                'client_id'     => self::$exactClientId,
-                'client_secret' => self::$exactClientSecret
-            )
-        ));
-        $body   = $response->getBody();
-        $obj    = json_decode((string) $body);
-        self::persistExact($obj);
-       
+            $response = $client->post($url, array(
+                'form_params' => array(
+                    'refresh_token' => $Exact->getRefreshToken(),
+                    'grant_type'    => "refresh_token",
+                    'client_id'     => self::$exactClientId,
+                    'client_secret' => self::$exactClientSecret
+                )
+            ));
+            $body   = $response->getBody();
+            $obj    = json_decode((string) $body);
+            self::persistExact($obj);
+        }
     }
 
 
