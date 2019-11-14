@@ -37,6 +37,9 @@ abstract class Model
         foreach ($value as $line) {
             $salesOrderLine = array();
             foreach ($line as $entryKey => $entry) {
+                if ($entryKey === "url" or $entryKey === "primaryKey") {
+                    continue;
+                }
                 if (null === $entry) {
                     continue;
                 }
