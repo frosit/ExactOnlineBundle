@@ -13,7 +13,7 @@ abstract class Model
     {
         $json = array();
         foreach ($this as $key => $value) {
-            if ('url' === $key or 'primaryKey' === $key) {
+            if ($key === "url" or $key === "primaryKey") {
                 continue;
             }
 
@@ -21,9 +21,29 @@ abstract class Model
                 continue;
             }
 
+            if ($key == "SalesOrderLines") {
+                $value = $this->encodeSalesOrderLines($value);
+            }
+
             $json[$key] = $value;
         }
 
         return json_encode($json);
+    }
+
+    private function encodeSalesOrderLines($value)
+    {
+        $salesOrderLines = array();
+        foreach ($value as $line) {
+            $salesOrderLine = array();
+            foreach ($line as $entryKey => $entry) {
+                if (null === $entry) {
+                    continue;
+                }
+                $salesOrderLine[$entryKey] = $entry;
+            }
+            array_push($salesOrderLines, $salesOrderLine);
+        }
+        return $salesOrderLines;
     }
 }
