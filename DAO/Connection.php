@@ -6,22 +6,18 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7;
-
 use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
 use aibianchi\ExactOnlineBundle\Model\Base\Me;
 use aibianchi\ExactOnlineBundle\Entity\Exact;
 
-
 /**
  * Class Connection
  * Author: Jefferson Bianchi
- * Email : Jefferson@aibianchi.com
- * @package aibianchi\ExactOnlineBundle\DAO
- *
+ * Email : Jefferson@aibianchi.com.
  */
-class Connection{
-
+class Connection
+{
     private static $container;
 
     private static $baseUrl;
@@ -37,21 +33,17 @@ class Connection{
 
     private static $em;
     private static $instance;
-    
 
-
-
-
-    public static function setConfig(array $config, EntityManager $em){
-
-        self::$em                           = $em;
-        self::$baseUrl                      = $config['baseUrl'];
-        self::$apiUrl                       = $config['apiUrl'];
-        self::$authUrl                      = $config['authUrl'];
-        self::$tokenUrl                     = $config['tokenUrl'];
-        self::$redirectUrl                  = $config['redirectUrl'];
-        self::$exactClientId                = $config['clientId'];
-        self::$exactClientSecret            = $config['clientSecret'];
+    public static function setConfig(array $config, EntityManager $em)
+    {
+        self::$em = $em;
+        self::$baseUrl = $config['baseUrl'];
+        self::$apiUrl = $config['apiUrl'];
+        self::$authUrl = $config['authUrl'];
+        self::$tokenUrl = $config['tokenUrl'];
+        self::$redirectUrl = $config['redirectUrl'];
+        self::$exactClientId = $config['clientId'];
+        self::$exactClientSecret = $config['clientSecret'];
     }
 
     public static function getInstance()
@@ -59,61 +51,57 @@ class Connection{
         if (null === static::$instance) {
             static::$instance = new static();
         }
+
         return static::$instance;
     }
-
-
 
     /*
     *  Exact api will post on redirect URL
     */
-    public static function getAuthorization(){
-
-            $url     =  self::$baseUrl.self::$authUrl;
-            $param   = array(
-                    "client_id"     => self::$exactClientId,
-                    "redirect_uri"  => self::$redirectUrl,
-                    "response_type" => "code",
-                    "force_login"   => "1",    
+    public static function getAuthorization()
+    {
+        $url = self::$baseUrl.self::$authUrl;
+        $param = array(
+                    'client_id' => self::$exactClientId,
+                    'redirect_uri' => self::$redirectUrl,
+                    'response_type' => 'code',
+                    'force_login' => '1',
             );
-            $query  = http_build_query($param);
+        $query = http_build_query($param);
 
-            header('Location: '.$url.'?'.$query, TRUE, 302);
-            die('Redirect');
-
+        header('Location: '.$url.'?'.$query, true, 302);
+        die('Redirect');
     }
 
-
-    public static function getAccessToken(){
-
-
-        $url      = self::$baseUrl.self::$tokenUrl;
-        $client   =  new Client();
+    public static function getAccessToken()
+    {
+        $url = self::$baseUrl.self::$tokenUrl;
+        $client = new Client();
         $response = $client->post($url, array(
             'form_params' => array(
-                'code'          => self::$code,
-                'client_id'     => self::$exactClientId,
-                'grant_type'    => "authorization_code",
+                'code' => self::$code,
+                'client_id' => self::$exactClientId,
+                'grant_type' => 'authorization_code',
                 'client_secret' => self::$exactClientSecret,
-                'redirect_uri'  => self::$redirectUrl,
-            ))
+                'redirect_uri' => self::$redirectUrl,
+            ), )
         );
 
-        $body   = $response->getBody();
-        $obj    = json_decode((string) $body);
-        self::persistExact($obj);       
+        $body = $response->getBody();
+        $obj = json_decode((string) $body);
+        self::persistExact($obj);
     }
 
-    private static function persistExact($obj){
-
-    	$Exact  = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
-    	if ($Exact != null){
-    			$code = $Exact->getCode();
-    	}else{
-                $code = self::$code;
+    private static function persistExact($obj)
+    {
+        $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
+        if (null != $Exact) {
+            $code = $Exact->getCode();
+        } else {
+            $code = self::$code;
         }
 
-        $exact  = new Exact();
+        $exact = new Exact();
         $exact->setAccessToken($obj->access_token);
         $exact->setCode($code);
         $exact->setTokenExpires($obj->expires_in);
@@ -121,9 +109,7 @@ class Connection{
 
         self::$em->Persist($exact);
         self::$em->flush();
-
     }
-
 
     public static function refreshAccessToken()
     {
@@ -146,19 +132,18 @@ class Connection{
         }
     }
 
-
-    public static function isExpired(){
-
-        $Exact      = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
-        if ($Exact == null){
+    public static function isExpired()
+    {
+        $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
+        if (null == $Exact) {
             return true;
         }
-        $createAt   = $Exact->getCreatedAt();
-        $now        = new \DateTime("now");
-        $expiresIn  = $Exact->getTokenExpires();
-        $seconds    = ( $now->getTimeStamp() ) - ( $createAt->getTimeStamp() );
+        $createAt = $Exact->getCreatedAt();
+        $now = new \DateTime('now');
+        $expiresIn = $Exact->getTokenExpires();
+        $seconds = ($now->getTimeStamp()) - ($createAt->getTimeStamp());
 
-        if ($expiresIn-60<$seconds){
+        if ($expiresIn - 60 < $seconds) {
             return true;
         }
 
@@ -168,54 +153,50 @@ class Connection{
     private static function createRequest($method = 'GET', $endpoint, $body = null, array $params = [], array $headers = [])
     {
         $headers = array_merge($headers, [
-            'Accept'        => 'application/json;odata=verbose,text/plain',
-            'Content-Type'  => 'application/json',
-            'Prefer'        => 'return=representation',
-            "X-aibianchi"   => "Exact Online Bundle <https://github.com/AI-Bianchi/ExactOnlineBundle/>"
+            'Accept' => 'application/json;odata=verbose,text/plain',
+            'Content-Type' => 'application/json',
+            'Prefer' => 'return=representation',
+            'X-aibianchi' => 'Exact Online Bundle <https://github.com/zangra-dev/ExactOnlineBundle/>',
         ]);
-         $Exact   = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
+        $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
 
-         if ($Exact->getAccessToken() == null) {
-
+        if (null == $Exact->getAccessToken()) {
             throw new ApiException('Access token was not initialized', 498);
         }
-    
+
         if (!empty($params)) {
-            $endpoint .= '?' . http_build_query($params);
+            $endpoint .= '?'.http_build_query($params);
         }
 
         $headers['Authorization'] = 'Bearer '.$Exact->getAccessToken();
-        
+
         return  $request = new Request($method, $endpoint, $headers, $body);
     }
 
-
-    public static function Request($url, $method, $json = null){
-
-        if (self::isExpired()){
+    public static function Request($url, $method, $json = null)
+    {
+        if (self::isExpired()) {
             throw new ApiException('Token is expired.', 498);
         }
 
-        try{
-
-            if ($url == "current/Me"){
-                $url      = self::$baseUrl.self::$apiUrl."/".$url;
-            }else{
-                $url      = self::$baseUrl.self::$apiUrl."/".self::getDivision()."/".$url;
+        try {
+            if ('current/Me' == $url) {
+                $url = self::$baseUrl.self::$apiUrl.'/'.$url;
+            } else {
+                $url = self::$baseUrl.self::$apiUrl.'/'.self::getDivision().'/'.$url;
             }
-                $client   = new Client();
-                $Exact    = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
+            $client = new Client();
+            $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
 
-                $request  = self::createRequest($method, $url, $json);
-                $response = $client->send($request);
-                $array    = self::parseResponse($response);
+            $request = self::createRequest($method, $url, $json);
+            $response = $client->send($request);
+            $array = self::parseResponse($response);
 
-                if ($array == null){
-                    throw new ApiException("no data is present", 204);
-                }
+            if (null == $array) {
+                throw new ApiException('no data is present', 204);
+            }
 
-                return $array;
-
+            return $array;
         } catch (ApiException $e) {
             throw new ApiException($e->getMessage(), $e->getStatusCode());
         }
@@ -224,34 +205,35 @@ class Connection{
     private static function parseResponse(Response $response, $returnSingleIfPossible = true)
     {
         try {
-            if ($response->getStatusCode() === 204) {
+            if (204 === $response->getStatusCode()) {
                 throw new ApiException($response->getMessage(), $response->getStatusCode());
             }
 
             Psr7\rewind_body($response);
             $json = json_decode($response->getBody()->getContents(), true);
 
-                if (is_array($json) ){
-                    if (array_key_exists('d', $json)) {
-                        if (array_key_exists('__next', $json['d'])) {
-                            $nextUrl = $json['d']['__next'];
-                        }
-                        else {
-                            $nextUrl = null;
-                        }
-                        if (array_key_exists('results', $json['d'])) {
-                            if ($returnSingleIfPossible && count($json['d']['results']) == 1) {
-                                return $json['d']['results'][0];
-                            }
-                            return $json['d']['results'];
-                        }
-                        return $json['d'];
+            if (is_array($json)) {
+                if (array_key_exists('d', $json)) {
+                    if (array_key_exists('__next', $json['d'])) {
+                        $nextUrl = $json['d']['__next'];
+                    } else {
+                        $nextUrl = null;
                     }
+                    if (array_key_exists('results', $json['d'])) {
+                        if ($returnSingleIfPossible && 1 == count($json['d']['results'])) {
+                            return $json['d']['results'][0];
+                        }
+
+                        return $json['d']['results'];
+                    }
+
+                    return $json['d'];
                 }
+            }
+
             return $json;
-            
         } catch (\ApiException $e) {
-              throw new ApiException($e->getMessage(), $e->getStatusCode());
+            throw new ApiException($e->getMessage(), $e->getStatusCode());
         }
     }
 
@@ -281,6 +263,7 @@ class Connection{
     public static function getDivision()
     {
         $me = new Me();
+
         return $me->getCurrentDivision();
     }
 }
