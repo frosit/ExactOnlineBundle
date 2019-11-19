@@ -178,9 +178,7 @@ class Connection
 
     public static function Request($url, $method, $json = null)
     {
-        if (self::isExpired()) {
-            throw new ApiException('Token is expired.', 498);
-        }
+        self::refreshAccessToken();
 
         try {
             if ('current/Me' == $url) {
