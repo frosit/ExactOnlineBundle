@@ -18,7 +18,8 @@ use aibianchi\ExactOnlineBundle\Entity\Exact;
  */
 class Connection
 {
-    private static $container;
+    const CONTENT_TYPE_JSON = 'application/json';
+    const CONTENT_TYPE_XML = 'application/xml';
 
     private static $baseUrl;
     private static $apiUrl;
@@ -29,10 +30,11 @@ class Connection
     private static $exactClientId;
     private static $exactClientSecret;
     private static $code;
-    private static $division;
 
     private static $em;
     private static $instance;
+    private $contentType = self::CONTENT_TYPE_JSON;
+    private $accept = self::CONTENT_TYPE_JSON.';odata=verbose,text/plain';
 
     public static function setConfig(array $config, EntityManager $em)
     {
@@ -154,8 +156,8 @@ class Connection
     private static function createRequest($method = 'GET', $endpoint, $body = null, array $params = [], array $headers = [])
     {
         $headers = array_merge($headers, [
-            'Accept' => 'application/json;odata=verbose,text/plain',
-            'Content-Type' => 'application/json',
+            'Accept' => $this->accept,
+            'Content-Type' => $this->contentType,
             'Prefer' => 'return=representation',
             'X-aibianchi' => 'Exact Online Bundle <https://github.com/zangra-dev/ExactOnlineBundle/>',
         ]);
@@ -235,6 +237,18 @@ class Connection
             return $json;
         } catch (\ApiException $e) {
             throw new ApiException($e->getMessage(), $e->getStatusCode());
+        }
+    }
+
+    private function setContentType($type = 'json')
+    {
+        if ('xml' === $type) {
+            $this->contentType = self::CONTENT_TYPE_XML;
+            $this->accept = self::CONTENT_TYPE_XML;
+        }
+
+        if ('json' === $type) {
+            $this->contentType = self::CONTENT_TYPE_JSON;
         }
     }
 
