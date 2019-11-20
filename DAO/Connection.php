@@ -48,6 +48,12 @@ class Connection
         self::$exactClientSecret = $config['clientSecret'];
     }
 
+    /**
+     * Return existing instance or creates a new one.
+     * !!! Not used !!!
+     *
+     * @return Connection
+     */
     public static function getInstance()
     {
         if (null === static::$instance) {
@@ -57,9 +63,12 @@ class Connection
         return static::$instance;
     }
 
-    /*
-    *  Exact api will post on redirect URL
-    */
+    /**
+     * Retrieve authorization code from Exact.
+     * Exact api will POST on redirect URL and will be treated in our Controller.
+     *
+     * @return Redirect
+     */
     public static function getAuthorization()
     {
         $url = self::$baseUrl.self::$authUrl;
@@ -75,6 +84,9 @@ class Connection
         die('Redirect');
     }
 
+    /**
+     * Get Token and persist to DB.
+     */
     public static function getAccessToken()
     {
         $url = self::$baseUrl.self::$tokenUrl;
@@ -92,9 +104,15 @@ class Connection
 
         $body = $response->getBody();
         $obj = json_decode((string) $body);
+
         self::persistExact($obj);
     }
 
+    /**
+     * Persist to table 'exact'.
+     *
+     * @param  object   returned object from Exact with new Tokens
+     */
     private static function persistExact($obj)
     {
         $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
@@ -114,6 +132,9 @@ class Connection
         self::$em->flush();
     }
 
+    /**
+     * Refresh access token (if expired).
+     */
     public static function refreshAccessToken()
     {
         if (self::isExpired()) {
@@ -129,30 +150,53 @@ class Connection
                     'client_secret' => self::$exactClientSecret,
                 ),
             ));
+
             $body = $response->getBody();
             $obj = json_decode((string) $body);
+
             self::persistExact($obj);
         }
     }
 
+    /**
+     * Check if Token has expired.
+     *
+     * @return bool
+     */
     public static function isExpired()
     {
         $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
         if (null == $Exact) {
             return true;
         }
+
         $createAt = $Exact->getCreatedAt();
         $now = new \DateTime('now');
-        $expiresIn = $Exact->getTokenExpires();
-        $seconds = ($now->getTimeStamp()) - ($createAt->getTimeStamp());
 
-        if ($expiresIn - 60 < $seconds) {
+        /** @var int Number of seconds the token is valid */
+        $lifeSpan = $Exact->getTokenExpires();
+        /** @var int Elapsed time */
+        $age = ($now->getTimeStamp()) - ($createAt->getTimeStamp());
+
+        // Lifespan (10min) minus 10 seconds
+        if ($lifeSpan - 10 < $age) {
             return true;
         }
 
         return false;
     }
 
+    /**
+     * Create Request.
+     *
+     * @param string $method
+     * @param string $endpoint
+     * @param string $body
+     * @param array  $params
+     * @param array  $headers
+     *
+     * @return GuzzleHttp\Psr7\Request;
+     */
     private static function createRequest($method = 'GET', $endpoint, $body = null, array $params = [], array $headers = [])
     {
         $headers = array_merge($headers, [
@@ -176,6 +220,15 @@ class Connection
         return  $request = new Request($method, $endpoint, $headers, $body);
     }
 
+    /**
+     * Execute request.
+     *
+     * @param string $url
+     * @param string $method
+     * @param string $json
+     *
+     * @return array
+     */
     public static function Request($url, $method, $json = null)
     {
         self::refreshAccessToken();
@@ -186,9 +239,8 @@ class Connection
             } else {
                 $url = self::$baseUrl.self::$apiUrl.'/'.self::getDivision().'/'.$url;
             }
-            $client = new Client();
-            $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
 
+            $client = new Client();
             $request = self::createRequest($method, $url, $json);
             $response = $client->send($request);
             $array = self::parseResponse($response);
@@ -203,6 +255,14 @@ class Connection
         }
     }
 
+    /**
+     * Parse response.
+     *
+     * @param Response $response
+     * @param bool     $returnSingleIfPossible
+     *
+     * @return array (associative)
+     */
     private static function parseResponse(Response $response, $returnSingleIfPossible = true)
     {
         try {
@@ -215,11 +275,14 @@ class Connection
 
             if (is_array($json)) {
                 if (array_key_exists('d', $json)) {
-                    if (array_key_exists('__next', $json['d'])) {
-                        $nextUrl = $json['d']['__next'];
-                    } else {
-                        $nextUrl = null;
-                    }
+                    // This code is not used, just keep it a while
+                    //
+                    // if (array_key_exists('__next', $json['d'])) {
+                    //     $nextUrl = $json['d']['__next'];
+                    // } else {
+                    //     $nextUrl = null;
+                    // }
+
                     if (array_key_exists('results', $json['d'])) {
                         if ($returnSingleIfPossible && 1 == count($json['d']['results'])) {
                             return $json['d']['results'][0];
