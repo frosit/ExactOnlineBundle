@@ -1,18 +1,14 @@
 <?php
 
-
 namespace aibianchi\ExactOnlineBundle\Entity;
 
-
-
 /**
-  * @author Bianchi Jefferson <Jefferson@aibianchi.com>
+ * @author Bianchi Jefferson <Jefferson@aibianchi.com>
  */
 class Exact
 {
-
     private $id;
-	private $accessToken;
+    private $accessToken;
     private $tokenType;
     private $code;
     private $tokenExpires;
@@ -20,16 +16,11 @@ class Exact
     private $enabled;
     private $createdAt;
 
-
     public function __construct()
     {
-        $this->enabled   = true;
+        $this->enabled = true;
         $this->createdAt = new \DateTime('now');
-        
     }
-
-   
-
 
     /**
      * @return mixed
@@ -191,5 +182,3 @@ class Exact
         return $this;
     }
 }
-
-?>

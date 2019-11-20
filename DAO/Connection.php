@@ -166,8 +166,9 @@ class Connection
     public static function isExpired()
     {
         $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
-        if (null == $Exact) {
-            return true;
+
+        if (null === $Exact) {
+            throw new ApiException('No access token found.', 499);
         }
 
         $createAt = $Exact->getCreatedAt();
@@ -205,10 +206,9 @@ class Connection
             'Prefer' => 'return=representation',
             'X-aibianchi' => 'Exact Online Bundle <https://github.com/zangra-dev/ExactOnlineBundle/>',
         ]);
-        $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast();
 
-        if (null == $Exact->getAccessToken()) {
-            throw new ApiException('Access token was not initialized', 498);
+        if (null === $Exact = self::$em->getRepository('ExactOnlineBundle:Exact')->findLast()) {
+            throw new ApiException('No access token found.', 499);
         }
 
         if (!empty($params)) {
