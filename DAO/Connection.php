@@ -30,13 +30,14 @@ class Connection
     private static $exactClientId;
     private static $exactClientSecret;
     private static $code;
+    private static $division;
 
     private static $em;
     private static $instance;
-    private $contentType = self::CONTENT_TYPE_JSON;
-    private $accept = self::CONTENT_TYPE_JSON.';odata=verbose,text/plain';
+    private static $contentType = self::CONTENT_TYPE_JSON;
+    private static $accept = self::CONTENT_TYPE_JSON.';odata=verbose,text/plain';
 
-    public static function setConfig(array $config, EntityManager $em)
+    public static function setConfig(array $config, EntityManager $em, $contentType = 'json')
     {
         self::$em = $em;
         self::$baseUrl = $config['baseUrl'];
@@ -46,6 +47,8 @@ class Connection
         self::$redirectUrl = $config['redirectUrl'];
         self::$exactClientId = $config['clientId'];
         self::$exactClientSecret = $config['clientSecret'];
+        self::$division = $config['mainDivision'];
+        self::setContentType($contentType);
     }
 
     /**
@@ -201,8 +204,8 @@ class Connection
     private static function createRequest($method = 'GET', $endpoint, $body = null, array $params = [], array $headers = [])
     {
         $headers = array_merge($headers, [
-            'Accept' => $this->accept,
-            'Content-Type' => $this->contentType,
+            'Accept' => self::$accept,
+            'Content-Type' => self::$contentType,
             'Prefer' => 'return=representation',
             'X-aibianchi' => 'Exact Online Bundle <https://github.com/zangra-dev/ExactOnlineBundle/>',
         ]);
@@ -217,7 +220,9 @@ class Connection
 
         $headers['Authorization'] = 'Bearer '.$Exact->getAccessToken();
 
-        return  $request = new Request($method, $endpoint, $headers, $body);
+        $request = new Request($method, $endpoint, $headers, $body);
+
+        return  $request;
     }
 
     /**
@@ -237,7 +242,7 @@ class Connection
             if ('current/Me' == $url) {
                 $url = self::$baseUrl.self::$apiUrl.'/'.$url;
             } else {
-                $url = self::$baseUrl.self::$apiUrl.'/'.self::getDivision().'/'.$url;
+                $url = self::$baseUrl.self::$apiUrl.'/'.self::$division.'/'.$url;
             }
 
             $client = new Client();
@@ -301,15 +306,15 @@ class Connection
         }
     }
 
-    private function setContentType($type = 'json')
+    public static function setContentType($type = 'json')
     {
         if ('xml' === $type) {
-            $this->contentType = self::CONTENT_TYPE_XML;
-            $this->accept = self::CONTENT_TYPE_XML;
+            self::$contentType = self::CONTENT_TYPE_XML;
+            self::$accept = self::CONTENT_TYPE_XML;
         }
 
         if ('json' === $type) {
-            $this->contentType = self::CONTENT_TYPE_JSON;
+            self::$contentType = self::CONTENT_TYPE_JSON;
         }
     }
 
@@ -334,7 +339,9 @@ class Connection
     }
 
     /**
-     * @return mixed
+     * Get division; makes an api request and returns a filled 'Me' Object.
+     *
+     * @return string   Extract current division from Me().
      */
     public static function getDivision()
     {

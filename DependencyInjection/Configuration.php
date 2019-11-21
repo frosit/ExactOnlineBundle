@@ -29,6 +29,7 @@ class Configuration implements ConfigurationInterface
                 ->scalarNode('redirectUrl')->defaultValue('')->end()
                 ->scalarNode('clientId')->defaultValue('')->end()
                 ->scalarNode('clientSecret')->defaultValue('')->end()
+                ->scalarNode('mainDivision')->defaultValue('')->end()
             ->end()
             ;
 
