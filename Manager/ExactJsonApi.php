@@ -14,15 +14,15 @@ use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
  */
 class ExactJsonApi extends ExactManager
 {
-    private $list = array();
-    private $model;
-    private $config;
-    private $em;
-    private $logger;
 
     public function __construct(EntityManager $em)
     {
         parent::__construct($em);
+    }
+
+    public function setConfig($config)
+    {
+        parent::setConfig($config);
     }
 
     /**

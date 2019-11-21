@@ -14,11 +14,11 @@ use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
  */
 abstract class ExactManager
 {
-    private $list = array();
-    private $model;
-    private $config;
-    private $em;
-    private $logger;
+    protected $list = [];
+    protected $model;
+    protected $config;
+    protected $em;
+    protected $logger;
 
     public function __construct(EntityManager $em)
     {
@@ -60,7 +60,7 @@ abstract class ExactManager
      *
      * @return bool
      */
-    private function assertGuid($guid)
+    protected function assertGuid($guid)
     {
         $UUIDv4 = '/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i';
 
