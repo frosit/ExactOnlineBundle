@@ -3,8 +3,12 @@ services:
 #        class: aibianchi\ExactOnlineBundle\Example
 #        arguments: [@service_id, "plain_value", %parameter%]
 
-    exact_online.manager:
-        class: aibianchi\ExactOnlineBundle\Manager\ExactManager
+    # exact_online.manager:
+    #     class: aibianchi\ExactOnlineBundle\Manager\ExactManager
+    #     arguments: ['@doctrine.orm.entity_manager']
+
+    exact_online.rest_api:
+        class: aibianchi\ExactOnlineBundle\Manager\ExactJsonApi
         arguments: ['@doctrine.orm.entity_manager']
 
     exact_online.exceptionlistener:
