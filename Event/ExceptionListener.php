@@ -1,38 +1,39 @@
 <?php
- 
+
 namespace aibianchi\ExactOnlineBundle\Event;
- 
-use aibianchi\ExactOnlineBundle\DAO\Exception\ApiExceptionInterface;
+
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
+use aibianchi\ExactOnlineBundle\DAO\Exception\ApiExceptionInterface;
 
 class ExceptionListener{
-	
+
    private $logger;
- 
+
     public function __construct(LoggerInterface $logger)
     {
         $this->logger = $logger;
     }
- 
+
     public function onKernelException(GetResponseForExceptionEvent $event)
     {
-        if (!$event->getException() instanceof ApiExceptionInterface) {
-            return;
+        if ($event->getException() instanceof ApiExceptionInterface || $event->getException() instanceof GuzzleException) {
+
+            $response = new JsonResponse($event->getException()->getMessage());
+            $event->setResponse($response);
+
+            $this->log($event->getException());
         }
 
-        $response = new JsonResponse($event->getException()->getMessage(), $event->getException()->getStatusCode());
-        $event->setResponse($response);
- 
-        $this->log($event->getException());
     }
- 
-    private function log(ApiExceptionInterface $exception)
+
+    private function log($exception)
     {
         $log = [
-            'code' => $exception->getStatusCode(),
+            'code' => method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : $exception->getCode(),
             'message' => $exception->getMessage(),
             'called' => [
                 'file' => $exception->getTrace()[0]['file'],
@@ -43,7 +44,7 @@ class ExceptionListener{
                 'line' => $exception->getLine(),
             ],
         ];
- 
+
         if ($exception->getPrevious() instanceof Exception) {
             $log += [
                 'previous' => [
@@ -54,8 +55,8 @@ class ExceptionListener{
                 ],
             ];
         }
- 
-        $this->logger->error(json_encode($log));
+
+        $this->logger->error(json_encode($log, JSON_UNESCAPED_SLASHES));
     }
 
 }
