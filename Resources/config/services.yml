@@ -11,6 +11,11 @@ services:
         class: aibianchi\ExactOnlineBundle\Manager\ExactJsonApi
         arguments: ['@doctrine.orm.entity_manager']
 
+    exact_online.xml_api:
+        class: aibianchi\ExactOnlineBundle\Manager\ExactXmlApi
+        arguments: ['@doctrine.orm.entity_manager']
+
+
     exact_online.exceptionlistener:
         class: aibianchi\ExactOnlineBundle\Event\ExceptionListener
         arguments: ['@monolog.logger.exactAPI']

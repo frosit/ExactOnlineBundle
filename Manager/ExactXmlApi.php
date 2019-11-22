@@ -27,7 +27,7 @@ class ExactXmlApi extends ExactManager
 
     public function setConfig($config)
     {
-        $this->config = $config;
+        parent::setConfig($config);
     }
 
     public function init($code)

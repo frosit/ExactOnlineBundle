@@ -25,7 +25,10 @@ class ExactOnlineExtension extends Extension
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.yml');
 
-        $exactServiceDefintion = $container->getDefinition('exact_online.rest_api');
-        $exactServiceDefintion->addMethodCall('setConfig', array($config));
+        $restServiceDefintion = $container->getDefinition('exact_online.rest_api');
+        $restServiceDefintion->addMethodCall('setConfig', array($config));
+
+        $xmlServiceDefintion = $container->getDefinition('exact_online.xml_api');
+        $xmlServiceDefintion->addMethodCall('setConfig', array($config));
     }
 }
