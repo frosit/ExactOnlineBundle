@@ -272,7 +272,7 @@ class Connection
     {
         try {
             if (204 === $response->getStatusCode()) {
-                throw new ApiException($response->getMessage(), $response->getStatusCode());
+                throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
             }
 
             Psr7\rewind_body($response);
