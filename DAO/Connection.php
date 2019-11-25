@@ -2,14 +2,14 @@
 
 namespace aibianchi\ExactOnlineBundle\DAO;
 
+use Doctrine\ORM\EntityManager;
 use GuzzleHttp\Client;
+use GuzzleHttp\Psr7;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Psr7;
-use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
-use aibianchi\ExactOnlineBundle\Model\Base\Me;
 use aibianchi\ExactOnlineBundle\Entity\Exact;
+use aibianchi\ExactOnlineBundle\Model\Base\Me;
 
 /**
  * Class Connection
@@ -245,9 +245,14 @@ class Connection
                 $url = self::$baseUrl.self::$apiUrl.'/'.self::$division.'/'.$url;
             }
 
-            $client = new Client();
-            $request = self::createRequest($method, $url, $json);
-            $response = $client->send($request);
+            try {
+                $client = new Client();
+                $request = self::createRequest($method, $url, $json);
+                $response = $client->send($request);
+            } catch (\Exception $ex) {
+                throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
+            }
+
             $array = self::parseResponse($response);
 
             if (null == $array) {
@@ -341,7 +346,7 @@ class Connection
     /**
      * Get division; makes an api request and returns a filled 'Me' Object.
      *
-     * @return string   Extract current division from Me().
+     * @return string extract current division from Me()
      */
     public static function getDivision()
     {
