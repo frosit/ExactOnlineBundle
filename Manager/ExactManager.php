@@ -54,6 +54,41 @@ abstract class ExactManager
     }
 
     /**
+     * @return PrimaryKey field
+     */
+    protected function getKeyField()
+    {
+        if (method_exists($this->model, 'getPrimaryKey')) {
+            $primaryKey = $this->model->getPrimaryKey();
+        } else {
+            $primaryKey = 'ID';
+        }
+
+        return $primaryKey;
+    }
+
+     /**
+     * @return object
+     */
+    public function getModel($name, $version = 'normal')
+    {
+        try {
+            if ($version === 'extended') {
+                $classname = $cname = 'aibianchi\\ExactOnlineBundle\\Model\\Xml\\'.$name;
+            } else {
+                $classname = $cname = 'aibianchi\\ExactOnlineBundle\\Model\\'.$name;
+            }
+
+            $this->model = new $classname();
+
+            return $this;
+        } catch (ApiException $e) {
+            throw new ApiException("Model doesn't existe : ", $e->getStatusCode());
+        }
+    }
+
+
+    /**
      * Assert passewd value is a GUID.
      *
      * @param string $guid a GUID string probably

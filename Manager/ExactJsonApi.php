@@ -25,21 +25,6 @@ class ExactJsonApi extends ExactManager
         parent::setConfig($config);
     }
 
-    /**
-     * @return object
-     */
-    public function getModel($name)
-    {
-        try {
-            $classname = $cname = 'aibianchi\\ExactOnlineBundle\\Model\\'.$name;
-            $this->model = new $classname();
-
-            return $this;
-        } catch (ApiException $e) {
-            throw new ApiException("Model doesn't existe : ", $e->getStatusCode());
-        }
-    }
-
     public function persist($entity)
     {
         $json = $entity->toJson();
@@ -153,20 +138,6 @@ class ExactJsonApi extends ExactManager
         $data = Connection::Request($url, 'GET');
 
         return $this->isSingleObject($data);
-    }
-
-    /**
-     * @return PrimaryKey field
-     */
-    private function getKeyField()
-    {
-        if (method_exists($this->model, 'getPrimaryKey')) {
-            $primaryKey = $this->model->getPrimaryKey();
-        } else {
-            $primaryKey = 'ID';
-        }
-
-        return $primaryKey;
     }
 
     /**
