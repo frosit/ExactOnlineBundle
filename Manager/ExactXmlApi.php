@@ -5,7 +5,7 @@ namespace aibianchi\ExactOnlineBundle\Manager;
 use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
 use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
-use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
+use aibianchi\ExactOnlineBundle\Model\Xml\XmlParamsControl;
 
 /**
  * Author: Jefferson Bianchi <Jefferson@aibianchi.com>
@@ -14,11 +14,7 @@ use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
  */
 class ExactXmlApi extends ExactManager
 {
-    private $list = array();
-    private $model;
-    private $config;
-    private $em;
-    private $logger;
+    protected $em;
 
     public function __construct(EntityManager $em)
     {
@@ -53,196 +49,78 @@ class ExactXmlApi extends ExactManager
         Connection::refreshAccessToken();
     }
 
-    /**
-     * @return object
-     */
-    public function getModel($name)
+    public function export(array $params)
     {
-        try {
-            $classname = $cname = 'aibianchi\\ExactOnlineBundle\\Model\\'.$name;
-            $this->model = new $classname();
+        Connection::setContentType('xml');
+        $p = '';
 
-            return $this;
-        } catch (ApiException $e) {
-            throw new ApiException("Model doesn't existe : ", $e->getStatusCode());
+        $url = 'XMLDownload.aspx?Topic='.$this->model::TOPIC;
+
+        $xmlParamsChecker = new XmlParamsControl();
+        $xmlParamsChecker->check($this->model::TOPIC, $params);
+
+        foreach ($params as $key => $param) {
+            $p .= '&Params_'.$key.'='.$param;
         }
-    }
 
-    public function persist($entity)
-    {
-        $json = $entity->toJson();
-        Connection::Request($entity->getUrl(), 'POST', $json);
-    }
-
-    public function remove($entity)
-    {
-        $json = $entity->toJson();
-        $keyField = $this->getKeyField();
-        $getter = 'get'.$keyField;
-        $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
-        Connection::Request($url, 'DELETE', $json);
-    }
-
-    public function update($entity)
-    {
-        $json = $entity->toJson();
-        $keyField = $this->getKeyField();
-        $getter = 'get'.$keyField;
-        $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
-        Connection::Request($url, 'PUT', $json);
-    }
-
-    /**
-     * @return int
-     */
-    public function count()
-    {
-        $url = $this->model->getUrl().'\\'.'$count';
+        $url = $url.$p;
         $data = Connection::Request($url, 'GET');
 
-        return $data;
-    }
-
-    /**
-     * getList with pagination
-     * Warning: Usually this limit, also known as page size, is 60 records but it may vary per end point.
-     * https://support.exactonline.com/community/s/knowledge-base#All-All-DNO-Content-resttips.
-     *
-     * @return object Collection
-     */
-    public function getList($page = 1, $maxPerPage = 5)
-    {
-        if ($maxPerPage >= 60) {
-            throw new ApiException('60 records maximum per page', 406);
-        }
-
-        $total = $this->count();
-
-        if ($maxPerPage > $total) {
-            throw new ApiException('Maximum records is: '.$total, 406);
-        }
-
-        $nbrPages = ceil($total / $maxPerPage);
-        $skip = ($page * $maxPerPage) - $maxPerPage;
-
-        if ($this->model instanceof BillOfMaterialMaterial) {
-            $url = $this->model->getUrl().'\\?'.'&$top='.$maxPerPage;
-        } else {
-            $url = $this->model->getUrl().'\\?'.'$skip='.$skip.'&$top='.$maxPerPage;
-        }
-
-        $data = Connection::Request($url, 'GET');
-
-        return $this->isArrayCollection($this->model, $data);
-    }
-
-    /**
-     *    array('field' => 'searchMe'),   // Criteria
-     *    array('date' => 'desc'),        // Order by
-     *    5,                              // limit.
-     *
-     *    @return array
-     */
-    public function findBy(array $criteria, array $select = null, array $orderby = null, $limit = 5)
-    {
-        // Check if current criteria (value) is a guid
-        $guidString = $this->assertGuid(current($criteria)) ? 'guid' : '';
-
-        $url = $this->model->getUrl()."\?".'$filter='.key($criteria).' eq '.$guidString."'".current($criteria)."'";
-
-        if (null != $select) {
-            $url = $url.'&$select=';
-            for ($i = 0; $i < count($select); ++$i) {
-                $url = $url.$select[$i].', ';
-            }
-        }
-
-        if ($limit > 0) {
-            $url = $url.'&$top='.$limit;
-        }
-
-        if (null != $orderby) {
-            $url = $url.'&$orderby='.key($orderby).' '.current($orderby);
-        }
-
-        $data = Connection::Request($url, 'GET');
-
-        return $this->isArrayCollection($this->model, $data);
-    }
-
-    /**
-     *  @return object
-     */
-    public function find($guid)
-    {
-        $keyField = $this->getKeyField();
-
-        $url = $this->model->getUrl()."\?".'$filter='.$keyField.' eq guid'."'".$guid."'";
-        $data = Connection::Request($url, 'GET');
-
-        return $this->isSingleObject($data);
-    }
-
-    /**
-     * @return PrimaryKey field
-     */
-    private function getKeyField()
-    {
-        if (method_exists($this->model, 'getPrimaryKey')) {
-            $primaryKey = $this->model->getPrimaryKey();
-        } else {
-            $primaryKey = 'ID';
-        }
-
-        return $primaryKey;
-    }
-
-    /**
-     * @return object
-     */
-    private function isSingleObject($data)
-    {
-        $object = $this->model;
-        foreach ($data as $key => $item) {
-            $setter = 'set'.$key;
-            if (method_exists($object, $setter)) {
-                $object->$setter($item);
-            }
-        }
-
-        return $object;
-    }
-
-    /**
-     * @return object collection
-     */
-    private function isArrayCollection($entity, $data)
-    {
-        foreach ($data as $keyD => $item) {
-            $object = new $entity();
-            foreach ($item as $key => $value) {
-                $setter = 'set'.$key;
-                if (method_exists($object, $setter)) {
-                    $object->$setter($value);
-                }
-            }
-            array_push($this->list, $object);
-        }
-
-        return $this->list;
-    }
-
-    /**
-     * Assert passewd value is a GUID.
-     *
-     * @param string $guid a GUID string probably
-     *
-     * @return bool
-     */
-    private function assertGuid($guid)
-    {
-        $UUIDv4 = '/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i';
-
-        return 1 === preg_match($UUIDv4, $guid);
+        dump($data);
+        exit;
     }
 }
+
+/*
+TOPICS
+
+<option value="APs">A/P</option>
+<option value="ARs">A/R</option>
+<option value="Accounts">Accounts</option>
+<option value="AllocationRules">Allocation rules</option>
+<option value="AssemblyOrders">Assembly orders</option>
+<option value="AssetGroups">Asset groups</option>
+<option value="Balances">Balance</option>
+<option value="BankLinks">Bank links</option>
+<option value="BillOfMaterials" selected="selected">Bill of materials</option>
+<option value="BudgetScenarios">Budget scenarios</option>
+<option value="Budgets">Budgets</option>
+<option value="Administrations">Companies</option>
+<option value="UserAdministrations">Company access rights</option>
+<option value="Costcenters">Cost centres</option>
+<option value="Costunits">Cost units</option>
+<option value="DepreciationMethods">Depreciation methods</option>
+<option value="Documents">Documents</option>
+<option value="ExchangeRates">Exchange rates</option>
+<option value="ExtraFieldDefinitions">Extra field definitions</option>
+<option value="FinYears">Financial years</option>
+<option value="FinishedAssemblies">Finished assemblies</option>
+<option value="GLAccountClassifications">G/L Account Classifications</option>
+<option value="GLAccounts">G/L Accounts</option>
+<option value="Deliveries">Goods deliveries</option>
+<option value="Receipts">Goods receipts</option>
+<option value="ItemGroups">Item groups</option>
+<option value="Items">Items</option>
+<option value="ItemWarehouse">Items by warehouses</option>
+<option value="Journals">Journals</option>
+<option value="Layouts">Layouts</option>
+<option value="DDMandates">Mandates</option>
+<option value="ManufacturedBillofMaterials">Manufactured bill of materials</option>
+<option value="MatchSets">Matching</option>
+<option value="PaymentConditions">Payment conditions</option>
+<option value="PurchaseOrders">Purchase orders</option>
+<option value="Invoices">Sales invoices</option>
+<option value="SalesOrders">Sales orders</option>
+<option value="Settings">Settings</option>
+<option value="ShippingMethods">Shipping methods</option>
+<option value="StockCounts">Stock counts</option>
+<option value="StockPositions">Stock positions</option>
+<option value="Titles">Titles</option>
+<option value="GLTransactions">Transactions</option>
+<option value="Users">Users</option>
+<option value="VATs">VAT codes</option>
+<option value="WarehouseTransfers">Warehouse transfers</option>
+<option value="Warehouses">Warehouses</option>
+<option value="WebShopSalesOrders">Web shop sales orders</option>
+
+ */
