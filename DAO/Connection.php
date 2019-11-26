@@ -234,20 +234,26 @@ class Connection
      *
      * @return array
      */
-    public static function Request($url, $method, $json = null)
+    public static function Request($url, $method)
     {
         self::refreshAccessToken();
 
-        try {
+        if (self::$contentType === self::CONTENT_TYPE_XML) {
+            $url = self::$baseUrl.'docs/'.$url.'_Division_='.self::$division;
+        }
+
+        if (self::$contentType === self::CONTENT_TYPE_JSON) {
             if ('current/Me' == $url) {
                 $url = self::$baseUrl.self::$apiUrl.'/'.$url;
             } else {
                 $url = self::$baseUrl.self::$apiUrl.'/'.self::$division.'/'.$url;
             }
+        }
 
+        try {
             try {
                 $client = new Client();
-                $request = self::createRequest($method, $url, $json);
+                $request = self::createRequest($method, $url);
                 $response = $client->send($request);
             } catch (\Exception $ex) {
                 throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
