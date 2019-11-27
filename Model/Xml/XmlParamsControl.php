@@ -36,7 +36,6 @@ class XmlParamsControl
      */
     public function check($topic, array $params)
     {
-        dump(__METHOD__);
         // Check that topic exists
         $xmlParams = $this->xml->xpath('//Topic[@code="'.$topic.'"]');
         if (empty($xmlParams)) {

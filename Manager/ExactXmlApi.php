@@ -2,6 +2,7 @@
 
 namespace aibianchi\ExactOnlineBundle\Manager;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
 use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
@@ -14,11 +15,31 @@ use aibianchi\ExactOnlineBundle\Model\Xml\XmlParamsControl;
  */
 class ExactXmlApi extends ExactManager
 {
-    protected $em;
+    const FILE_OPTION_ALL = 'file_option_all';
+    const FILE_OPTION_FIRST = 'file_option_first';
+    const FILE_OPTION_SAVE = 'file_option_save';
+    const RETURN_SIMPLE_XML = 'return_simple_xml';
+    const OPTIONS = [self::FILE_OPTION_ALL, self::FILE_OPTION_FIRST, self::FILE_OPTION_SAVE, self::RETURN_SIMPLE_XML];
 
-    public function __construct(EntityManager $em)
+    protected $em;
+    protected $files;
+    protected $xmlBodies;
+    protected $exactXmlExportDir = 'web/media/exact/xml/export/';
+    protected $option;
+    protected $nbrElements;
+    protected $pageSize;
+    protected $bodySize;
+
+    public function __construct(EntityManager $em, $options = [])
     {
         parent::__construct($em);
+        $this->files = new ArrayCollection();
+
+        $this->options[] = self::FILE_OPTION_FIRST;
+        $this->options[] = self::RETURN_SIMPLE_XML;
+        if (!empty($options)) {
+            $this->setOptions($options);
+        }
     }
 
     public function setConfig($config)
@@ -26,31 +47,21 @@ class ExactXmlApi extends ExactManager
         parent::setConfig($config);
     }
 
-    public function init($code)
+    /**
+     * Exact Export XML entities (Topics). Optionally save to file
+     * Create request based on models xml Topic and input params.
+     * Check params and values validity.
+     *
+     * @param array $params
+     *
+     * @return string ResponseBody
+     */
+    public function export(array $params, $options = [])
     {
-        try {
-            Connection::setConfig($this->config, $this->em, $this->logger);
-
-            if (Connection::isExpired()) {
-                if (null == $code) {
-                    Connection::getAuthorization();
-                }
-                Connection::setCode($code);
-                Connection::getAccessToken();
-            }
-        } catch (ApiException $e) {
-            throw new Exception("Can't initiate connection: ", $e->getCode());
+        if (!empty($options)) {
+            $this->setOptions($options);
         }
-    }
 
-    public function refreshToken()
-    {
-        Connection::setConfig($this->config, $this->em, $this->logger);
-        Connection::refreshAccessToken();
-    }
-
-    public function export(array $params)
-    {
         Connection::setContentType('xml');
         $p = '';
 
@@ -64,10 +75,139 @@ class ExactXmlApi extends ExactManager
         }
 
         $url = $url.$p;
-        $data = Connection::Request($url, 'GET');
+        $responseBody = $this->makeRequest($url);
 
-        dump($data);
-        exit;
+        return $responseBody;
+    }
+
+    /**
+     * Make request.
+     * Check valid xml in response.
+     * Get next page if available.
+     * Store written file in an arrayCollection.
+     *
+     * @param string $url
+     * @param int    $counter
+     *
+     * @return string raw body
+     */
+    private function makeRequest($url, $counter = 1)
+    {
+        dump(__METHOD__, $counter, $url);
+        $responseBody = Connection::Request($url, 'GET');
+        $xml = simplexml_load_string($responseBody);
+
+        if (false === $xml) {
+            $msg = '';
+            foreach (libxml_get_errors() as $error) {
+                $msg .= $error->message.' ';
+            }
+            throw new \Exception('Exact Xml error. '.$msg, 1);
+        }
+
+        $this->nbrElements = (string) $xml->Topics->Topic['count'];
+        $this->pageSize = (string) $xml->Topics->Topic['pagesize'];
+        $this->bodySize = strlen($responseBody);
+
+        if (in_array(self::FILE_OPTION_SAVE, $this->options)) {
+            $this->files[] = $this->saveData($responseBody, $counter);
+        }
+
+        if (in_array(self::RETURN_SIMPLE_XML, $this->options)) {
+            return $xml;
+        }
+
+        if (in_array(self::FILE_OPTION_ALL, $this->options) && null !== $url = $this->getNextPage($xml, $url)) {
+            $this->makeRequest($url, ++$counter);
+        }
+
+
+        return $responseBody;
+    }
+
+    /**
+     * Get next paging if any.
+     * Adds or replace TSPaging timestamp (TSPaging=0x000000008DDDC820 hex timestamp)
+     * and returns the new url or null.
+     *
+     * @param \SimpleXMLElement $xml
+     * @param string            $url
+     *
+     * @return string|null
+     */
+    private function getNextPage(\SimpleXMLElement $xml, $url)
+    {
+        $url = preg_replace('/&TSPaging=0x[0-9A-F]{16}/', '', $url);
+        if ($this->nbrElements == $this->pageSize) {
+            $tsPaging = '&TSPaging='.(string) $xml->Topics->Topic['ts_d'];
+
+            return $url.$tsPaging;
+        }
+
+        return null;
+    }
+
+    /**
+     * Save response body to file.
+     *
+     * @param string $responseBody
+     * @param int    $counter
+     * @param string $type
+     *
+     * @return string $filename
+     */
+    private function saveData($responseBody, $counter, $type = 'xml')
+    {
+        $filename = $this->model::TOPIC.'_'.date('YmdHi').'-'.$counter;
+        $file = $this->exactXmlExportDir.$filename.'.'.$type;
+
+        if (is_dir($this->exactXmlExportDir)) {
+            file_put_contents($file, $responseBody);
+
+            return $filename;
+        }
+
+        throw new \Exception($file.' could not be written. Dir exists ? Permission ?', 1);
+    }
+
+    public function setOptions($options)
+    {
+        foreach ($options as $option) {
+            if (!in_array($option, self::OPTIONS)) {
+                throw new \Exception("Unknown constant option", 1);
+            }
+        }
+        $this->options = array_merge($this->options, $options);
+    }
+
+    public function getOptions()
+    {
+        return $this->options;
+    }
+
+    public function setSaveOption($saveOption)
+    {
+        $this->saveOption = $saveOption;
+    }
+
+    public function getNbrElements()
+    {
+        return $this->nbrElements;
+    }
+
+    public function getPageSize()
+    {
+        return $this->pageSize;
+    }
+
+    public function getBodySize()
+    {
+        return $this->bodySize;
+    }
+
+    public function getFiles()
+    {
+        return $this->files;
     }
 }
 
