@@ -234,12 +234,12 @@ class Connection
      *
      * @return array
      */
-    public static function Request($url, $method)
+    public static function Request($url, $method, $body = null)
     {
         self::refreshAccessToken();
 
         if (self::$contentType === self::CONTENT_TYPE_XML) {
-            $url = self::$baseUrl.'docs/'.$url.'_Division_='.self::$division;
+            $url = self::$baseUrl.'docs/'.$url.'&_Division_='.self::$division;
         }
 
         if (self::$contentType === self::CONTENT_TYPE_JSON) {
@@ -251,35 +251,51 @@ class Connection
         }
 
         try {
-            try {
-                $client = new Client();
-                $request = self::createRequest($method, $url);
-                $response = $client->send($request);
-            } catch (\Exception $ex) {
-                throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
-            }
+            $client = new Client();
+            $request = self::createRequest($method, $url, $body);
 
-            $array = self::parseResponse($response);
+            $response = $client->send($request);
+        } catch (\Exception $ex) {
+            throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
+        }
 
-            if (null == $array) {
+        try {
+            $parsedResponse = self::parseResponse($response);
+
+            if (null == $parsedResponse) {
                 throw new ApiException('no data is present', 204);
             }
 
-            return $array;
+            return $parsedResponse;
         } catch (ApiException $e) {
             throw new ApiException($e->getMessage(), $e->getStatusCode());
         }
     }
 
+    private static function parseResponse(Response $response, $returnSingleIfPossible = true)
+    {
+        if (204 === $response->getStatusCode()) {
+            throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
+        }
+
+        if (self::$contentType === self::CONTENT_TYPE_XML) {
+            return $response->getBody()->getContents();
+        }
+
+        if (self::$contentType === self::CONTENT_TYPE_JSON) {
+            return self::parseJSON($response, $returnSingleIfPossible);
+        }
+    }
+
     /**
-     * Parse response.
+     * Parse JSON response.
      *
      * @param Response $response
      * @param bool     $returnSingleIfPossible
      *
      * @return array (associative)
      */
-    private static function parseResponse(Response $response, $returnSingleIfPossible = true)
+    private static function parseJSON(Response $response, $returnSingleIfPossible = true)
     {
         try {
             if (204 === $response->getStatusCode()) {
