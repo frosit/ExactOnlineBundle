@@ -5,25 +5,32 @@ namespace aibianchi\ExactOnlineBundle\Manager;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
-use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
 use aibianchi\ExactOnlineBundle\Model\Xml\XmlParamsControl;
 
 /**
- * Author: Jefferson Bianchi <Jefferson@aibianchi.com>
- * Author: Nils méchin <nils@zangra.com>
- * Author: Maxime Lambot <maxime@lambot.com>.
+ * Author: Nils méchin <nils@zangra.com>.
  */
 class ExactXmlApi extends ExactManager
 {
-    const FILE_OPTION_ALL = 'file_option_all';
-    const FILE_OPTION_FIRST = 'file_option_first';
+    // Get next parts if available (default: no)
+    const RETURN_ALL_PARTS = 'return_all_parts';
+
+    // Save all part in a returned collection.
+    // Memory monster (default: no)
+    const COLLECT_ALL_PARTS = 'collect_all_parts';
+
+    // Save as XML file(s) (default: no)
     const FILE_OPTION_SAVE = 'file_option_save';
+
+    // Return as a SimpleXml object (default: yes)
+    // else a raw response body ie returned
     const RETURN_SIMPLE_XML = 'return_simple_xml';
-    const OPTIONS = [self::FILE_OPTION_ALL, self::FILE_OPTION_FIRST, self::FILE_OPTION_SAVE, self::RETURN_SIMPLE_XML];
+
+    const OPTIONS = [self::RETURN_ALL_PARTS, self::FILE_OPTION_SAVE, self::RETURN_SIMPLE_XML, self::COLLECT_ALL_PARTS];
 
     protected $em;
     protected $files;
-    protected $xmlBodies;
+    protected $data;
     protected $exactXmlExportDir = 'web/media/exact/xml/export/';
     protected $option;
     protected $nbrElements;
@@ -34,8 +41,9 @@ class ExactXmlApi extends ExactManager
     {
         parent::__construct($em);
         $this->files = new ArrayCollection();
+        $this->data = new ArrayCollection();
 
-        $this->options[] = self::FILE_OPTION_FIRST;
+        // default options
         $this->options[] = self::RETURN_SIMPLE_XML;
         if (!empty($options)) {
             $this->setOptions($options);
@@ -114,13 +122,27 @@ class ExactXmlApi extends ExactManager
         }
 
         if (in_array(self::RETURN_SIMPLE_XML, $this->options)) {
-            return $xml;
+            $responseBody = $xml;
+            $this->data[] = $xml;
+        } else {
+            $this->data[] = $responseBody;
         }
 
-        if (in_array(self::FILE_OPTION_ALL, $this->options) && null !== $url = $this->getNextPage($xml, $url)) {
+        if (in_array(self::COLLECT_ALL_PARTS, $this->options)) {
+            if (in_array(self::RETURN_SIMPLE_XML, $this->options)) {
+                $this->data[] = $xml;
+            } else {
+                $this->data[] = $responseBody;
+            }
+        } else {
+            if (in_array(self::RETURN_SIMPLE_XML, $this->options)) {
+                $responseBody = $xml;
+            }
+        }
+
+        if (in_array(self::RETURN_ALL_PARTS, $this->options) && null !== $url = $this->getNextPage($xml, $url)) {
             $this->makeRequest($url, ++$counter);
         }
-
 
         return $responseBody;
     }
@@ -174,10 +196,10 @@ class ExactXmlApi extends ExactManager
     {
         foreach ($options as $option) {
             if (!in_array($option, self::OPTIONS)) {
-                throw new \Exception("Unknown constant option", 1);
+                throw new \Exception('Unknown constant option', 1);
             }
         }
-        $this->options = array_merge($this->options, $options);
+        $this->options = $options;
     }
 
     public function getOptions()

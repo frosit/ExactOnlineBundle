@@ -39,7 +39,7 @@ class XmlParamsControl
         // Check that topic exists
         $xmlParams = $this->xml->xpath('//Topic[@code="'.$topic.'"]');
         if (empty($xmlParams)) {
-            throw new \ApiException('Parameter: '.$topic.' does not exists', 1);
+            throw new ApiException('Parameter: '.$topic.' does not exists', 1);
         }
 
         // Check that param and value is correct for specified topic
