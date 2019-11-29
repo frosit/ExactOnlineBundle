@@ -36,6 +36,7 @@ class Connection
     private static $instance;
     private static $contentType = self::CONTENT_TYPE_JSON;
     private static $accept = self::CONTENT_TYPE_JSON.';odata=verbose,text/plain';
+    private static $xRateLimits = [];
 
     public static function setConfig(array $config, EntityManager $em, $contentType = 'json')
     {
@@ -251,10 +252,18 @@ class Connection
         }
 
         try {
+
             $client = new Client();
             $request = self::createRequest($method, $url, $body);
-
             $response = $client->send($request);
+
+            self::$xRateLimits['X-RateLimi-Limit'] = $response->getHeader('X-RateLimit-Limit');
+            self::$xRateLimits['X-RateLimit-Remaining'] = $response->getHeader('X-RateLimit-Remaining');
+            self::$xRateLimits['X-RateLimit-Reset'] = $response->getHeader('X-RateLimit-Reset');
+            self::$xRateLimits['X-RateLimit-Minutely-Limit'] = $response->getHeader('X-RateLimit-Minutely-Limit');
+            self::$xRateLimits['X-RateLimit-Minutely-Remaining'] = $response->getHeader('X-RateLimit-Minutely-Remaining');
+            self::$xRateLimits['X-RateLimit-Minutely-Reset'] = $response->getHeader('X-RateLimit-Minutely-Reset');
+
         } catch (\Exception $ex) {
             throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
         }
@@ -374,5 +383,10 @@ class Connection
         $me = new Me();
 
         return $me->getCurrentDivision();
+    }
+
+    public function getXRateLimits()
+    {
+        return self::$xRateLimits;
     }
 }
