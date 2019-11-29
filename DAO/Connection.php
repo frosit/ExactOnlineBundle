@@ -260,11 +260,7 @@ class Connection
         }
 
         try {
-            $parsedResponse = self::parseResponse($response);
-
-            if (null == $parsedResponse) {
-                throw new ApiException('no data is present', 204);
-            }
+            $parsedResponse = self::parseResponse($response, $request->getMethod());
 
             return $parsedResponse;
         } catch (ApiException $e) {
@@ -272,10 +268,13 @@ class Connection
         }
     }
 
-    private static function parseResponse(Response $response, $returnSingleIfPossible = true)
+    private static function parseResponse(Response $response, $method, $returnSingleIfPossible = true)
     {
-        if (204 === $response->getStatusCode()) {
+        if (204 === $response->getStatusCode() and "PUT" != $method) {
             throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
+        }
+        else {
+            return null;
         }
 
         if (self::$contentType === self::CONTENT_TYPE_XML) {
