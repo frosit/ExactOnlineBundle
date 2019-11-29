@@ -279,11 +279,8 @@ class Connection
 
     private static function parseResponse(Response $response, $method, $returnSingleIfPossible = true)
     {
-        if (204 === $response->getStatusCode() and "PUT" != $method) {
+        if (204 === $response->getStatusCode() && "POST" == $method) {
             throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
-        }
-        else {
-            return null;
         }
 
         if (self::$contentType === self::CONTENT_TYPE_XML) {
