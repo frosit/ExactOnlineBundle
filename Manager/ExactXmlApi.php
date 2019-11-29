@@ -10,32 +10,19 @@ use aibianchi\ExactOnlineBundle\Model\Xml\XmlParamsControl;
 /**
  * Author: Nils méchin <nils@zangra.com>.
  */
-class ExactXmlApi extends ExactManager
+class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
 {
-    // Get next parts if available (default: no)
-    const RETURN_ALL_PARTS = 'return_all_parts';
-
-    // Save all part in a returned collection.
-    // Memory monster (default: no)
-    const COLLECT_ALL_PARTS = 'collect_all_parts';
-
-    // Save as XML file(s) (default: no)
-    const FILE_OPTION_SAVE = 'file_option_save';
-
-    // Return as a SimpleXml object (default: yes)
-    // else a raw response body ie returned
-    const RETURN_SIMPLE_XML = 'return_simple_xml';
-
-    const OPTIONS = [self::RETURN_ALL_PARTS, self::FILE_OPTION_SAVE, self::RETURN_SIMPLE_XML, self::COLLECT_ALL_PARTS];
-
     protected $em;
     protected $files;
     protected $data;
     protected $exactXmlExportDir = 'web/media/exact/xml/export/';
-    protected $option;
+    protected $options = [];
     protected $nbrElements;
     protected $pageSize;
     protected $bodySize;
+    protected $verbose = false;
+    protected $limitParts = 10000;
+    protected $xRateLimit;
 
     public function __construct(EntityManager $em, $options = [])
     {
@@ -44,7 +31,7 @@ class ExactXmlApi extends ExactManager
         $this->data = new ArrayCollection();
 
         // default options
-        $this->options[] = self::RETURN_SIMPLE_XML;
+        // $this->options[] = self::RETURN_SIMPLE_XML;
         if (!empty($options)) {
             $this->setOptions($options);
         }
@@ -64,10 +51,14 @@ class ExactXmlApi extends ExactManager
      *
      * @return string ResponseBody
      */
-    public function export(array $params, $options = [])
+    public function export(array $params, $options = [], $limitParts = null)
     {
         if (!empty($options)) {
             $this->setOptions($options);
+        }
+
+        if (!empty($limitParts)) {
+            $this->limitParts = $limitParts;
         }
 
         Connection::setContentType('xml');
@@ -101,8 +92,15 @@ class ExactXmlApi extends ExactManager
      */
     private function makeRequest($url, $counter = 1)
     {
-        dump(__METHOD__, $counter, $url);
+        if (in_array(self::VERBOSE, $this->options)) {
+            echo $counter.' Fetch:'."\n";
+            echo __METHOD__."\n";
+            echo $url."\n";
+        }
+
         $responseBody = Connection::Request($url, 'GET');
+        $this->xRateLimit = Connection::getXRateLimits();
+
         $xml = simplexml_load_string($responseBody);
 
         if (false === $xml) {
@@ -121,13 +119,6 @@ class ExactXmlApi extends ExactManager
             $this->files[] = $this->saveData($responseBody, $counter);
         }
 
-        if (in_array(self::RETURN_SIMPLE_XML, $this->options)) {
-            $responseBody = $xml;
-            $this->data[] = $xml;
-        } else {
-            $this->data[] = $responseBody;
-        }
-
         if (in_array(self::COLLECT_ALL_PARTS, $this->options)) {
             if (in_array(self::RETURN_SIMPLE_XML, $this->options)) {
                 $this->data[] = $xml;
@@ -140,8 +131,12 @@ class ExactXmlApi extends ExactManager
             }
         }
 
-        if (in_array(self::RETURN_ALL_PARTS, $this->options) && null !== $url = $this->getNextPage($xml, $url)) {
-            $this->makeRequest($url, ++$counter);
+        if (in_array(self::GET_PARTS, $this->options)) {
+            if ($counter < $this->limitParts) {
+                if (null !== $url = $this->getNextPage($xml, $url)) {
+                    $this->makeRequest($url, ++$counter);
+                }
+            }
         }
 
         return $responseBody;
@@ -207,29 +202,66 @@ class ExactXmlApi extends ExactManager
         return $this->options;
     }
 
-    public function setSaveOption($saveOption)
-    {
-        $this->saveOption = $saveOption;
-    }
-
+    /**
+     * Get number of elements in XML file.
+     * Topic attribute count.
+     *
+     * @return string (numeric)
+     */
     public function getNbrElements()
     {
         return $this->nbrElements;
     }
 
+    /**
+     * Get Max number of elements in choosen Topic.
+     * Topic attribute pagesize.
+     *
+     * @return string (numeric)
+     */
     public function getPageSize()
     {
         return $this->pageSize;
     }
 
+    /**
+     * Size of response body in bytes.
+     *
+     * @return int
+     */
     public function getBodySize()
     {
         return $this->bodySize;
     }
 
+    /**
+     * Get list of paths to saved files.
+     *
+     * @return ArrayCollection
+     */
     public function getFiles()
     {
         return $this->files;
+    }
+
+    /**
+     * Get list of retrieved raw bodies or SimpleXmlElements.
+     *
+     * @return ArrayCollection
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * Get Rate limits of last Request.
+     *
+     * @return array
+     */
+    public function getRateLimit()
+    {
+        return $this->xRateLimit;
     }
 }
 
