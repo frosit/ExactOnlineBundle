@@ -42,6 +42,22 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         parent::setConfig($config);
     }
 
+    public function clearAll()
+    {
+        $this->files->clear();
+        $this->data->clear();
+    }
+
+    public function clearFiles()
+    {
+        $this->files->clear();
+    }
+
+    public function clearData()
+    {
+        $this->data->clear();
+    }
+
     /**
      * Exact Export XML entities (Topics). Optionally save to file
      * Create request based on models xml Topic and input params.
