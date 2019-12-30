@@ -303,10 +303,6 @@ class Connection
     private static function parseJSON(Response $response, $returnSingleIfPossible = true)
     {
         try {
-            if (204 === $response->getStatusCode()) {
-                throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
-            }
-
             Psr7\rewind_body($response);
             $json = json_decode($response->getBody()->getContents(), true);
 
