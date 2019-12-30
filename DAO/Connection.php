@@ -265,7 +265,11 @@ class Connection
             self::$xRateLimits['X-RateLimit-Minutely-Reset'] = $response->getHeader('X-RateLimit-Minutely-Reset');
 
         } catch (\Exception $ex) {
-            throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
+            if ($method == "PUT" and $ex->getResponse()->getStatusCode() == 403) {
+                return "ErrorDoPersist";
+            } else {
+                throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
+            }
         }
 
         try {

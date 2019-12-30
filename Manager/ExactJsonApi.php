@@ -28,7 +28,8 @@ class ExactJsonApi extends ExactManager
     public function persist($entity)
     {
         $json = $entity->toJson();
-        Connection::Request($entity->getUrl(), 'POST', $json);
+        $result = Connection::Request($entity->getUrl(), 'POST', $json);
+        return $result;
     }
 
     public function remove($entity)
@@ -46,7 +47,11 @@ class ExactJsonApi extends ExactManager
         $keyField = $this->getKeyField();
         $getter = 'get'.$keyField;
         $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
-        Connection::Request($url, 'PUT', $json);
+
+        $result = Connection::Request($url, 'PUT', $json);
+        if ( $result == "ErrorDoPersist") {
+            $this->persist($entity);
+        }
     }
 
     /**
