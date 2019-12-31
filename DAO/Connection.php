@@ -268,7 +268,13 @@ class Connection
             if ($method == "PUT" and $ex->getResponse()->getStatusCode() == 403) {
                 return "ErrorDoPersist";
             } else {
-                throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
+                $error = $ex->getResponse()->getBody()->getContents();
+                if($ex->getResponse()->getStatusCode() == 500)
+                {
+                    return $error;
+                }
+
+                throw new ApiException($error, $ex->getResponse()->getStatusCode());
             }
         }
 
