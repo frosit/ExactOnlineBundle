@@ -52,6 +52,7 @@ class ExactJsonApi extends ExactManager
         if ( $result == "ErrorDoPersist") {
             $this->persist($entity);
         }
+        return $result;
     }
 
     /**
