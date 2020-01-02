@@ -395,11 +395,15 @@ class Connection
 
     public function getRateLimitDelay()
     {
-        $limit = (self::$xRateLimits['X-RateLimit-Minutely-Remaining'][0]);
+        if (isset(self::$xRateLimits['X-RateLimit-Minutely-Remaining'])) {
+            $limit = (self::$xRateLimits['X-RateLimit-Minutely-Remaining'][0]);
+        } else {
+            $limit = 300;
+        }
         $delay = (60 / $limit)* 1000000;
         if ($delay < 2000000) {
             $delay = 0;
         }
-        return $delay;
+        return intval($delay);
     }
 }
