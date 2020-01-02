@@ -31,6 +31,10 @@ abstract class Model
                 $value = $this->encodeSalesOrderLines($value);
             }
 
+            if ('SalesOrderIDs' == $key) {
+                $value = $this->encodeSalesOrderLines($value);
+            }
+
             $json[$key] = $value;
         }
 
