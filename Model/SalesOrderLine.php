@@ -114,11 +114,6 @@ class SalesOrderLine extends Model
         return $this->ID;
     }
 
-    public function getOrderID()
-    {
-        return $this->ID;
-    }
-
     /**
      * @param mixed $ID
      *
