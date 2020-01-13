@@ -67,25 +67,26 @@ class ExactJsonApi extends ExactManager
      *
      * @return object Collection
      */
-    public function getList($page = 1, $maxPerPage = 5)
+    public function getList($page = null, $maxPerPage = 60)
     {
-        if ($maxPerPage >= 60) {
-            throw new ApiException('60 records maximum per page', 406);
-        }
+        if (null !== $page) {
+            # code...
+            if ($maxPerPage >= 60) {
+                throw new ApiException('60 records maximum per page', 406);
+            }
 
-        $total = $this->count();
+            $total = $this->count();
 
-        if ($maxPerPage > $total) {
-            throw new ApiException('Maximum records is: '.$total, 406);
-        }
+            if ($maxPerPage > $total) {
+                throw new ApiException('Maximum records is: '.$total, 406);
+            }
 
-        $nbrPages = ceil($total / $maxPerPage);
-        $skip = ($page * $maxPerPage) - $maxPerPage;
+            $nbrPages = ceil($total / $maxPerPage);
+            $skip = ($page * $maxPerPage) - $maxPerPage;
 
-        if ($this->model instanceof BillOfMaterialMaterial) {
-            $url = $this->model->getUrl().'\\?'.'&$top='.$maxPerPage;
-        } else {
             $url = $this->model->getUrl().'\\?'.'$skip='.$skip.'&$top='.$maxPerPage;
+        } else {
+            $url = $this->model->getUrl().'\\?'.'&$top='.$maxPerPage;
         }
 
         $data = Connection::Request($url, 'GET');
