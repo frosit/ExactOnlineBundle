@@ -27,12 +27,15 @@ class ExactJsonApi extends ExactManager
 
     public function persist($entity)
     {
+        usleep(Connection::getRateLimitDelay());
         $json = $entity->toJson();
-        Connection::Request($entity->getUrl(), 'POST', $json);
+        $result = Connection::Request($entity->getUrl(), 'POST', $json);
+        return $result;
     }
 
     public function remove($entity)
     {
+        usleep(Connection::getRateLimitDelay());
         $json = $entity->toJson();
         $keyField = $this->getKeyField();
         $getter = 'get'.$keyField;
@@ -42,11 +45,17 @@ class ExactJsonApi extends ExactManager
 
     public function update($entity)
     {
+        usleep(Connection::getRateLimitDelay());
         $json = $entity->toJson();
         $keyField = $this->getKeyField();
         $getter = 'get'.$keyField;
         $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
-        Connection::Request($url, 'PUT', $json);
+
+        $result = Connection::Request($url, 'PUT', $json);
+        if ( $result == "ErrorDoPersist") {
+            $result = $this->persist($entity);
+        }
+        return $result;
     }
 
     /**

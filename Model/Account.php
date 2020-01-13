@@ -1,6 +1,6 @@
 <?php
 
-namespace aibianchi\ExactOnlineBundle\Model; 
+namespace aibianchi\ExactOnlineBundle\Model;
 
 use aibianchi\ExactOnlineBundle\Model\Base\Model;
 
@@ -131,7 +131,7 @@ use aibianchi\ExactOnlineBundle\Model\Base\Model;
  * @property string $Website Website of the account
  */
 class Account extends Model {
-    
+
         protected $ID;
         protected $Accountant;
         protected $AccountManager;
@@ -257,6 +257,11 @@ class Account extends Model {
      * @return mixed
      */
     public function getID()
+    {
+        return $this->ID;
+    }
+
+    public function getOrderID()
     {
         return $this->ID;
     }

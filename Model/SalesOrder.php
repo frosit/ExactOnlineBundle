@@ -180,6 +180,14 @@ class SalesOrder extends Model
     /**
      * @return mixed
      */
+    public function getID()
+    {
+        return $this->OrderID;
+    }
+
+    /**
+     * @return mixed
+     */
     public function getOrderID()
     {
         return $this->OrderID;

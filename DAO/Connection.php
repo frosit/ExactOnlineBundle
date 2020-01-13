@@ -265,7 +265,17 @@ class Connection
             self::$xRateLimits['X-RateLimit-Minutely-Reset'] = $response->getHeader('X-RateLimit-Minutely-Reset');
 
         } catch (\Exception $ex) {
-            throw new ApiException($ex->getResponse()->getBody()->getContents(), $ex->getResponse()->getStatusCode());
+            if ($method == "PUT" and $ex->getResponse()->getStatusCode() == 403) {
+                return "ErrorDoPersist";
+            } else {
+                $error = $ex->getResponse()->getBody()->getContents();
+                if($ex->getResponse()->getStatusCode() == 500)
+                {
+                    return $error;
+                }
+
+                throw new ApiException($error, $ex->getResponse()->getStatusCode());
+            }
         }
 
         try {
@@ -303,10 +313,6 @@ class Connection
     private static function parseJSON(Response $response, $returnSingleIfPossible = true)
     {
         try {
-            if (204 === $response->getStatusCode()) {
-                throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
-            }
-
             Psr7\rewind_body($response);
             $json = json_decode($response->getBody()->getContents(), true);
 
@@ -385,5 +391,19 @@ class Connection
     public function getXRateLimits()
     {
         return self::$xRateLimits;
+    }
+
+    public function getRateLimitDelay()
+    {
+        if (isset(self::$xRateLimits['X-RateLimit-Minutely-Remaining'])) {
+            $limit = (self::$xRateLimits['X-RateLimit-Minutely-Remaining'][0]);
+        } else {
+            $limit = 300;
+        }
+        $delay = (60 / $limit)* 1000000;
+        if ($delay < 2000000) {
+            $delay = 0;
+        }
+        return intval($delay);
     }
 }

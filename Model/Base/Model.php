@@ -21,7 +21,17 @@ abstract class Model
                 continue;
             }
 
+            // If an array of entity is passed to the json, it squizzed it,
+            // rebuild an proper array without being entity and pass it to the $json array
             if ('SalesOrderLines' == $key) {
+                $value = $this->encodeSalesOrderLines($value);
+            }
+
+            if ('SalesInvoiceLines' == $key) {
+                $value = $this->encodeSalesOrderLines($value);
+            }
+
+            if ('SalesOrderIDs' == $key) {
                 $value = $this->encodeSalesOrderLines($value);
             }
 

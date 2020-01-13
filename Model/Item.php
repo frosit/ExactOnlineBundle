@@ -219,6 +219,11 @@ class Item extends Model
         return $this->ID;
     }
 
+    public function getOrderID()
+    {
+        return $this->ID;
+    }
+
     public function setID($ID)
     {
         $this->ID = $ID;
