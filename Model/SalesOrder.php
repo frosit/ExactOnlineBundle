@@ -30,6 +30,7 @@ use aibianchi\ExactOnlineBundle\Model\Base\Model;
  * @property int             $DeliveryStatus                 Shipping status
  * @property string          $DeliveryStatusDescription      Description of DeliveryStatus
  * @property string          $Description                    Description
+ * @property double          $Discount                       Discount percentage
  * @property int             $Division                       Division code
  * @property string          $Document                       Document that is manually linked to the sales order
  * @property int             $DocumentNumber                 Number of the document
@@ -93,6 +94,7 @@ class SalesOrder extends Model
     protected $DeliveryStatus;
     protected $DeliveryStatusDescription;
     protected $Description;
+    protected $Discount;
     protected $Division;
     protected $Document;
     protected $DocumentNumber;
@@ -1361,6 +1363,26 @@ class SalesOrder extends Model
     public function setUrl($url)
     {
         $this->url = $url;
+
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getDiscount()
+    {
+        return $this->Discount;
+    }
+
+    /**
+     * @param mixed $Discount
+     *
+     * @return self
+     */
+    public function setDiscount($Discount)
+    {
+        $this->Discount = $Discount;
 
         return $this;
     }
