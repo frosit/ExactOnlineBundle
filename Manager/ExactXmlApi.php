@@ -279,6 +279,26 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     {
         return $this->xRateLimit;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getXmlExportDir()
+    {
+        return $this->exactXmlExportDir;
+    }
+
+    /**
+     * @param mixed $exactXmlExportDir
+     *
+     * @return self
+     */
+    public function setXmlExportDir($exactXmlExportDir)
+    {
+        $this->exactXmlExportDir = $exactXmlExportDir;
+
+        return $this;
+    }
 }
 
 /*
