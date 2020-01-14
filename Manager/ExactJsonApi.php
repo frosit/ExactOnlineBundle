@@ -6,6 +6,7 @@ use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
 use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
 use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
+use aibianchi\ExactOnlineBundle\Model\WebhookSubscription;
 
 /**
  * Author: Jefferson Bianchi <Jefferson@aibianchi.com>
@@ -36,11 +37,13 @@ class ExactJsonApi extends ExactManager
     public function remove($entity)
     {
         usleep(Connection::getRateLimitDelay());
+
         $json = $entity->toJson();
         $keyField = $this->getKeyField();
         $getter = 'get'.$keyField;
         $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
-        Connection::Request($url, 'DELETE', $json);
+
+        return Connection::Request($url, 'DELETE', $json);
     }
 
     public function update($entity)
@@ -56,6 +59,18 @@ class ExactJsonApi extends ExactManager
             $result = $this->persist($entity);
         }
         return $result;
+    }
+
+    public function get($asObject = false)
+    {
+        $url = $this->model->getUrl();
+        $data = Connection::Request($url, 'GET');
+
+        if ($asObject) {
+            return $this->isArrayCollection($this->model, [$data]);
+        }
+
+        return $data;
     }
 
     /**
