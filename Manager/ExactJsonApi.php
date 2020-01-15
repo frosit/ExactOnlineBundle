@@ -155,11 +155,16 @@ class ExactJsonApi extends ExactManager
     /**
      *  @return object
      */
-    public function find($guid)
+    public function find($guid, $filter = true)
     {
         $keyField = $this->getKeyField();
 
-        $url = $this->model->getUrl()."\?".'$filter='.$keyField.' eq guid'."'".$guid."'";
+        if ($filter) {
+            $url = $this->model->getUrl().'?'.'$filter='.$keyField.' eq guid'."'".$guid."'";
+        } else {
+            $url = $this->model->getUrl().'?'.$keyField.'=guid'."'".$guid."'";
+        }
+
         $data = Connection::Request($url, 'GET');
 
         return $this->isSingleObject($data);
@@ -168,8 +173,9 @@ class ExactJsonApi extends ExactManager
     /**
      * @return object
      */
-    private function isSingleObject($data)
+    private function isSingleObject(array $data)
     {
+        $data = (is_array($data[0])) ? $data[0] : $data;
         $object = $this->model;
         foreach ($data as $key => $item) {
             $setter = 'set'.$key;
