@@ -5,8 +5,6 @@ namespace aibianchi\ExactOnlineBundle\Manager;
 use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
 use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
-use aibianchi\ExactOnlineBundle\Model\BillOfMaterialMaterial;
-use aibianchi\ExactOnlineBundle\Model\WebhookSubscription;
 
 /**
  * Author: Jefferson Bianchi <Jefferson@aibianchi.com>
@@ -15,7 +13,6 @@ use aibianchi\ExactOnlineBundle\Model\WebhookSubscription;
  */
 class ExactJsonApi extends ExactManager
 {
-
     public function __construct(EntityManager $em)
     {
         parent::__construct($em);
@@ -31,6 +28,7 @@ class ExactJsonApi extends ExactManager
         usleep(Connection::getRateLimitDelay());
         $json = $entity->toJson();
         $result = Connection::Request($entity->getUrl(), 'POST', $json);
+
         return $result;
     }
 
@@ -55,9 +53,10 @@ class ExactJsonApi extends ExactManager
         $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
 
         $result = Connection::Request($url, 'PUT', $json);
-        if ( $result == "ErrorDoPersist") {
+        if ('ErrorDoPersist' == $result) {
             $result = $this->persist($entity);
         }
+
         return $result;
     }
 
@@ -94,7 +93,7 @@ class ExactJsonApi extends ExactManager
     public function getList($page = null, $maxPerPage = 60)
     {
         if (null !== $page) {
-            # code...
+
             if ($maxPerPage >= 60) {
                 throw new ApiException('60 records maximum per page', 406);
             }
