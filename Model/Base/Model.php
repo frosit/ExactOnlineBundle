@@ -24,15 +24,19 @@ abstract class Model
             // If an array of entity is passed to the json, it squizzed it,
             // rebuild an proper array without being entity and pass it to the $json array
             if ('SalesOrderLines' == $key) {
-                $value = $this->encodeSalesOrderLines($value);
+                $value = $this->encodeLines($value);
             }
 
             if ('SalesInvoiceLines' == $key) {
-                $value = $this->encodeSalesOrderLines($value);
+                $value = $this->encodeLines($value);
             }
 
             if ('SalesOrderIDs' == $key) {
-                $value = $this->encodeSalesOrderLines($value);
+                $value = $this->encodeLines($value);
+            }
+
+            if ('GoodsDeliveryLines' == $key) {
+                $value = $this->encodeLines($value);
             }
 
             $json[$key] = $value;
@@ -41,7 +45,7 @@ abstract class Model
         return json_encode($json);
     }
 
-    private function encodeSalesOrderLines($value)
+    private function encodeLines($value)
     {
         $salesOrderLines = array();
         foreach ($value as $line) {
