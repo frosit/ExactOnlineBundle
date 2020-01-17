@@ -174,7 +174,7 @@ class ExactJsonApi extends ExactManager
      */
     private function isSingleObject(array $data)
     {
-        $data = (is_array($data[0])) ? $data[0] : $data;
+        $data = (isset($data[0]) && is_array($data[0])) ? $data[0] : $data;
         $object = $this->model;
         foreach ($data as $key => $item) {
             $setter = 'set'.$key;
