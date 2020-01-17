@@ -239,11 +239,11 @@ class Connection
     {
         self::refreshAccessToken();
 
-        if (self::$contentType === self::CONTENT_TYPE_XML) {
+        if (self::CONTENT_TYPE_XML === self::$contentType) {
             $url = self::$baseUrl.'docs/'.$url.'&_Division_='.self::$division;
         }
 
-        if (self::$contentType === self::CONTENT_TYPE_JSON) {
+        if (self::CONTENT_TYPE_JSON === self::$contentType) {
             if ('current/Me' == $url) {
                 $url = self::$baseUrl.self::$apiUrl.'/'.$url;
             } else {
@@ -252,7 +252,6 @@ class Connection
         }
 
         try {
-
             $client = new Client();
             $request = self::createRequest($method, $url, $body);
             $response = $client->send($request);
@@ -263,19 +262,18 @@ class Connection
             self::$xRateLimits['X-RateLimit-Minutely-Limit'] = $response->getHeader('X-RateLimit-Minutely-Limit');
             self::$xRateLimits['X-RateLimit-Minutely-Remaining'] = $response->getHeader('X-RateLimit-Minutely-Remaining');
             self::$xRateLimits['X-RateLimit-Minutely-Reset'] = $response->getHeader('X-RateLimit-Minutely-Reset');
-
         } catch (\Exception $ex) {
-            if ($method == "PUT" and $ex->getResponse()->getStatusCode() == 403) {
-                return "ErrorDoPersist";
-            } else {
-                $error = $ex->getResponse()->getBody()->getContents();
-                if($ex->getResponse()->getStatusCode() == 500)
-                {
-                    return $error;
-                }
-
-                throw new ApiException($error, $ex->getResponse()->getStatusCode());
+            if ('PUT' == $method && 403 == $ex->getResponse()->getStatusCode()) {
+                return 'ErrorDoPersist';
             }
+
+            $error = $ex->getResponse()->getBody()->getContents();
+
+            if (500 == $ex->getResponse()->getStatusCode()) {
+                return $error;
+            }
+
+            throw new ApiException($error, $ex->getResponse()->getStatusCode());
         }
 
         try {
@@ -289,15 +287,15 @@ class Connection
 
     private static function parseResponse(Response $response, $method, $returnSingleIfPossible = true)
     {
-        if (204 === $response->getStatusCode() && "POST" == $method) {
+        if (204 === $response->getStatusCode() && 'POST' == $method) {
             throw new ApiException($response->getReasonPhrase(), $response->getStatusCode());
         }
 
-        if (self::$contentType === self::CONTENT_TYPE_XML) {
+        if (self::CONTENT_TYPE_XML === self::$contentType) {
             return $response->getBody()->getContents();
         }
 
-        if (self::$contentType === self::CONTENT_TYPE_JSON) {
+        if (self::CONTENT_TYPE_JSON === self::$contentType) {
             return self::parseJSON($response, $returnSingleIfPossible);
         }
     }
@@ -400,10 +398,11 @@ class Connection
         } else {
             $limit = 300;
         }
-        $delay = (60 / $limit)* 1000000;
+        $delay = (60 / $limit) * 1000000;
         if ($delay < 2000000) {
             $delay = 0;
         }
+
         return intval($delay);
     }
 }
