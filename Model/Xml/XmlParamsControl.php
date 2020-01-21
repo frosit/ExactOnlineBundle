@@ -12,15 +12,20 @@ use aibianchi\ExactOnlineBundle\DAO\Exception\ApiException;
  */
 class XmlParamsControl
 {
+    const IMPORT = 'Import';
+    const EXPORT = 'Export';
+
     private $xmlTopicParameters = 'web/bundles/exactbundle/XMLTopicParameters.xml';
     private $xml;
+    private $type;
 
-    public function __construct()
+    public function __construct($type = self::EXPORT)
     {
         if (!file_exists($this->xmlTopicParameters)) {
             throw new ApiException('File xmlTopicParameters can not be read at: '.$this->xmlTopicParameters, 1);
         }
 
+        $this->type = $type;
         $this->xml = simplexml_load_file($this->xmlTopicParameters) or die;
     }
 
@@ -64,7 +69,7 @@ class XmlParamsControl
      */
     private function checkParam($xmlParams, $param, $value, $topic)
     {
-        foreach ($xmlParams[0]->Parameters->Export->Parameter as $xmlParam) {
+        foreach ($xmlParams[0]->Parameters->{$this->type}->Parameter as $xmlParam) {
             if ('Params_'.$param == $xmlParam['name']) {
                 $type = $xmlParam['type'];
 
