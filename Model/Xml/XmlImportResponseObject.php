@@ -13,6 +13,7 @@ class XmlImportResponseObject
     const TYPE_WARNING = 1;
     const TYPE_SUCCES = 2;
     const TYPE_FATAL = 3;
+    const RESPONSE_TYPES = ['error', 'warning', 'succes', 'fatal'];
 
     protected $message;
     protected $type;
