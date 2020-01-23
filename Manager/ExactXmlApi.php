@@ -4,8 +4,8 @@ namespace aibianchi\ExactOnlineBundle\Manager;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManager;
-use Zangra\Bundle\ExactBundle\Entity\XmlImportResponse;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
+use aibianchi\ExactOnlineBundle\Entity\XmlImportResponse;
 use aibianchi\ExactOnlineBundle\Model\Xml\XmlParamsControl;
 
 /**
