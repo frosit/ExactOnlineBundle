@@ -153,7 +153,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     }
 
     /**
-     * Make request.
+     * Make request (recursive).
      * Check valid xml in response.
      * Get next page if available.
      * Store written file in an arrayCollection.
@@ -219,6 +219,10 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
      */
     private function getNextPage(\SimpleXMLElement $xml, $url)
     {
+        if (empty($this->nbrElements) || empty($this->pageSize)) {
+            return null;
+        }
+
         $url = preg_replace('/&TSPaging=0x[0-9A-F]{16}/', '', $url);
         if ($this->nbrElements == $this->pageSize) {
             $tsPaging = '&TSPaging='.(string) $xml->Topics->Topic['ts_d'];
