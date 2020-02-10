@@ -72,6 +72,24 @@ class ExactJsonApi extends ExactManager
         return $data;
     }
 
+    public function post($json)
+    {
+        $url = $this->model->getUrl();
+        $data = Connection::Request($url, 'POST', $json);
+
+        return $data;
+    }
+
+    public function put($json)
+    {
+        $data = json_decode($json);
+        $keyField = $this->getKeyField();
+        $url = $this->model->getUrl()."(guid'".$data->$keyField."')";
+        $data = Connection::Request($url, 'PUT', $json);
+
+        return $data;
+    }
+
     /**
      * @return int
      */
