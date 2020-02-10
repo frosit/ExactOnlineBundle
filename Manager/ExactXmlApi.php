@@ -33,7 +33,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         $this->data = new ArrayCollection();
 
         // default options
-        // $this->options[] = self::RETURN_SIMPLE_XML;
+        $this->options[] = self::RETURN_SIMPLE_XML;
         if (!empty($options)) {
             $this->setOptions($options);
         }
