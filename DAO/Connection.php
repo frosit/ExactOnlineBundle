@@ -351,6 +351,7 @@ class Connection
 
         if ('json' === $type) {
             self::$contentType = self::CONTENT_TYPE_JSON;
+            self::$accept = self::CONTENT_TYPE_JSON.';odata=verbose,text/plain';
         }
     }
 
