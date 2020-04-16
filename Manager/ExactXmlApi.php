@@ -16,7 +16,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     protected $em;
     protected $files;
     protected $data;
-    protected $exactXmlExportDir = 'web/media/exact/xml/export/';
+    protected $exactXmlExportDir = '/home/debian/public/zangra-sylius/web/media/exact/xml/export/';
     protected $options = [];
     protected $nbrElements;
     protected $pageSize;
