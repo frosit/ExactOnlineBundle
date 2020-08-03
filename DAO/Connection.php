@@ -268,7 +268,7 @@ class Connection
             if ($method == "PUT" and $ex->getResponse()->getStatusCode() == 403) {
                 return "ErrorDoPersist";
             } else {
-                $error = $ex->getResponse()->getBody()->getContents();
+                $error = json_decode($ex->getResponse()->getBody()->getContents())->error->message->value;
                 if($ex->getResponse()->getStatusCode() == 500)
                 {
                     return $error;
