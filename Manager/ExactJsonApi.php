@@ -23,11 +23,18 @@ class ExactJsonApi extends ExactManager
         parent::setConfig($config);
     }
 
+    private function request($url, $method, $data = null)
+    {
+        Connection::setContentType('json');
+
+        return Connection::Request($url, $method, $data);
+    }
+
     public function persist($entity)
     {
         usleep(Connection::getRateLimitDelay());
         $json = $entity->toJson();
-        $result = Connection::Request($entity->getUrl(), 'POST', $json);
+        $result = $this->request($entity->getUrl(), 'POST', $json);
 
         return $result;
     }
@@ -41,18 +48,19 @@ class ExactJsonApi extends ExactManager
         $getter = 'get'.$keyField;
         $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
 
-        return Connection::Request($url, 'DELETE', $json);
+        return $this->request($url, 'DELETE', $json);
     }
 
     public function update($entity)
     {
         usleep(Connection::getRateLimitDelay());
+
         $json = $entity->toJson();
         $keyField = $this->getKeyField();
         $getter = 'get'.$keyField;
         $url = $entity->getUrl()."(guid'".$entity->$getter()."')";
 
-        $result = Connection::Request($url, 'PUT', $json);
+        $result = $this->request($url, 'PUT', $json);
         if ('ErrorDoPersist' == $result) {
             $result = $this->persist($entity);
         }
@@ -63,11 +71,29 @@ class ExactJsonApi extends ExactManager
     public function get($asObject = false)
     {
         $url = $this->model->getUrl();
-        $data = Connection::Request($url, 'GET');
+        $data = $this->request($url, 'GET');
 
         if ($asObject) {
             return $this->isArrayCollection($this->model, [$data]);
         }
+
+        return $data;
+    }
+
+    public function post($json)
+    {
+        $url = $this->model->getUrl();
+        $data = $this->request($url, 'POST', $json);
+
+        return $data;
+    }
+
+    public function put($json)
+    {
+        $data = json_decode($json);
+        $keyField = $this->getKeyField();
+        $url = $this->model->getUrl()."(guid'".$data->$keyField."')";
+        $data = $this->request($url, 'PUT', $json);
 
         return $data;
     }
@@ -78,7 +104,7 @@ class ExactJsonApi extends ExactManager
     public function count()
     {
         $url = $this->model->getUrl().'\\'.'$count';
-        $data = Connection::Request($url, 'GET');
+        $data = $this->request($url, 'GET');
 
         return $data;
     }
@@ -93,7 +119,6 @@ class ExactJsonApi extends ExactManager
     public function getList($page = null, $maxPerPage = 60)
     {
         if (null !== $page) {
-
             if ($maxPerPage >= 60) {
                 throw new ApiException('60 records maximum per page', 406);
             }
@@ -112,7 +137,7 @@ class ExactJsonApi extends ExactManager
             $url = $this->model->getUrl().'\\?'.'&$top='.$maxPerPage;
         }
 
-        $data = Connection::Request($url, 'GET');
+        $data = $this->request($url, 'GET');
 
         return $this->isArrayCollection($this->model, $data);
     }
@@ -146,7 +171,7 @@ class ExactJsonApi extends ExactManager
             $url = $url.'&$orderby='.key($orderby).' '.current($orderby);
         }
 
-        $data = Connection::Request($url, 'GET');
+        $data = $this->request($url, 'GET');
 
         return $this->isArrayCollection($this->model, $data);
     }
@@ -164,7 +189,7 @@ class ExactJsonApi extends ExactManager
             $url = $this->model->getUrl().'?'.$keyField.'=guid'."'".$guid."'";
         }
 
-        $data = Connection::Request($url, 'GET');
+        $data = $this->request($url, 'GET');
 
         return $this->isSingleObject($data);
     }

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:gedmo="http://gediminasm.org/schemas/orm/doctrine-extensions-mapping"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      http://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+  <entity
+    name="aibianchi\ExactOnlineBundle\Entity\XmlImportResponse"
+    table="exact_import_log"
+    repository-class="aibianchi\ExactOnlineBundle\doctrine\ORM\XmlImportResponseRepository"
+  >
+
+    <id name="id" type="integer" column="id">
+      <generator strategy="AUTO"/>
+    </id>
+
+    <indexes>
+        <index name="import_batch_id_idx" columns="batch_id"/>
+        <index name="import_type_idx" columns="type"/>
+        <index name="import_topic_code_idx" columns="topic_code"/>
+    </indexes>
+
+    <field name="batchId" column="batch_id" type="integer" />
+    <field name="message" column="message" type="string" />
+    <field name="type" column="type" type="integer" />
+    <field name="topicNode" column="topic_node" type="string" />
+    <field name="topicCode" column="topic_code" type="string" />
+    <field name="dataKey" column="data_key" type="string" nullable="true" />
+    <field name="datetime" column="datetime" type="datetime" />
+
+  </entity>
+</doctrine-mapping>

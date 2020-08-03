@@ -5,6 +5,7 @@ namespace aibianchi\ExactOnlineBundle\Manager;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManager;
 use aibianchi\ExactOnlineBundle\DAO\Connection;
+use aibianchi\ExactOnlineBundle\Entity\XmlImportResponse;
 use aibianchi\ExactOnlineBundle\Model\Xml\XmlParamsControl;
 
 /**
@@ -15,7 +16,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     protected $em;
     protected $files;
     protected $data;
-    protected $exactXmlExportDir = 'web/media/exact/xml/export/';
+    protected $exactXmlExportDir = '/home/debian/public/zangra-sylius/web/media/exact/xml/export/';
     protected $options = [];
     protected $nbrElements;
     protected $pageSize;
@@ -23,6 +24,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     protected $verbose = false;
     protected $limitParts = 10000;
     protected $xRateLimit;
+    protected $errors = false;
 
     public function __construct(EntityManager $em, $options = [])
     {
@@ -31,7 +33,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         $this->data = new ArrayCollection();
 
         // default options
-        // $this->options[] = self::RETURN_SIMPLE_XML;
+        $this->options[] = self::RETURN_SIMPLE_XML;
         if (!empty($options)) {
             $this->setOptions($options);
         }
@@ -42,20 +44,49 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         parent::setConfig($config);
     }
 
-    public function clearAll()
+
+    public function import(string $body, array $params = [], array $options = [])
     {
-        $this->files->clear();
-        $this->data->clear();
+        if (!empty($options)) {
+            $this->setOptions($options);
+        }
+
+
+        $url = 'XMLUpload.aspx?Topic='.$this->model::TOPIC;
+        $p = $this->formatXmlParams($params, XmlParamsControl::IMPORT);
+        $url = $url.$p;
+
+        Connection::setContentType('xml');
+        $response = Connection::Request($url, 'POST', $body);
+        $this->xRateLimit = Connection::getXRateLimits();
+
+        $xml = $this->simpleXmlLoad($response);
+
+        return $this->parseXmlResponse($xml);
     }
 
-    public function clearFiles()
+    /**
+     * [parseXmlResponse description]
+     * @param  [type] $xml [description]
+     * @return [type]      [description]
+     */
+    private function parseXmlResponse($xml)
     {
-        $this->files->clear();
-    }
+        foreach ($xml->Messages->children() as $message) {
+            if (!$this->errors && 2 !== (int) $message['type']) {
+                $this->errors = true;
+            }
 
-    public function clearData()
-    {
-        $this->data->clear();
+            $xmlResponseObject = new XmlImportResponse();
+            $xmlResponseObject->setMessage((string)$message->Description);
+            $xmlResponseObject->setType((int) $message['type']);
+            $xmlResponseObject->setTopicNode((string) $message->Topic['node']);
+            $xmlResponseObject->setTopicCode((string) $message->Topic['code']);
+            $xmlResponseObject->setDataKey((string) $message->Topic->Data['keyAlt']);
+            $xmlResponseObject->setDateTime(new \DateTime((string) $message->Date));
+
+            $this->data->add($xmlResponseObject);
+        }
     }
 
     /**
@@ -78,16 +109,10 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         }
 
         Connection::setContentType('xml');
-        $p = '';
 
         $url = 'XMLDownload.aspx?Topic='.$this->model::TOPIC;
 
-        $xmlParamsChecker = new XmlParamsControl();
-        $xmlParamsChecker->check($this->model::TOPIC, $params);
-
-        foreach ($params as $key => $param) {
-            $p .= '&Params_'.$key.'='.$param;
-        }
+        $p = $this->formatXmlParams($params, XmlParamsControl::EXPORT);
 
         $url = $url.$p;
         $responseBody = $this->makeRequest($url);
@@ -95,8 +120,40 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         return $responseBody;
     }
 
+    private function formatXmlParams(array $params, $type)
+    {
+        $p = '';
+        if (empty($params)) {
+            return $p;
+        }
+
+        $xmlParamsChecker = new XmlParamsControl($type);
+        $xmlParamsChecker->check($this->model::TOPIC, $params);
+
+        foreach ($params as $key => $param) {
+            $p .= '&Params_'.$key.'='.$param;
+        }
+
+        return $p;
+    }
+
+    private function simpleXmlLoad($responseBody)
+    {
+        $xml = simplexml_load_string($responseBody);
+
+        if (false === $xml) {
+            $msg = '';
+            foreach (libxml_get_errors() as $error) {
+                $msg .= $error->message.' ';
+            }
+            throw new \Exception('Exact Xml error. '.$msg, 1);
+        }
+
+        return $xml;
+    }
+
     /**
-     * Make request.
+     * Make request (recursive).
      * Check valid xml in response.
      * Get next page if available.
      * Store written file in an arrayCollection.
@@ -117,15 +174,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         $responseBody = Connection::Request($url, 'GET');
         $this->xRateLimit = Connection::getXRateLimits();
 
-        $xml = simplexml_load_string($responseBody);
-
-        if (false === $xml) {
-            $msg = '';
-            foreach (libxml_get_errors() as $error) {
-                $msg .= $error->message.' ';
-            }
-            throw new \Exception('Exact Xml error. '.$msg, 1);
-        }
+        $xml = $this->simpleXmlLoad($responseBody);
 
         $this->nbrElements = (string) $xml->Topics->Topic['count'];
         $this->pageSize = (string) $xml->Topics->Topic['pagesize'];
@@ -170,6 +219,10 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
      */
     private function getNextPage(\SimpleXMLElement $xml, $url)
     {
+        if (empty($this->nbrElements) || empty($this->pageSize)) {
+            return null;
+        }
+
         $url = preg_replace('/&TSPaging=0x[0-9A-F]{16}/', '', $url);
         if ($this->nbrElements == $this->pageSize) {
             $tsPaging = '&TSPaging='.(string) $xml->Topics->Topic['ts_d'];
@@ -219,7 +272,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     }
 
     /**
-     * Get number of elements in XML file.
+     * Get number of elements in current XML file (part).
      * Topic attribute count.
      *
      * @return string (numeric)
@@ -230,7 +283,7 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
     }
 
     /**
-     * Get Max number of elements in choosen Topic.
+     * Get Max number of elements possible in choosen Topic (part).
      * Topic attribute pagesize.
      *
      * @return string (numeric)
@@ -298,6 +351,30 @@ class ExactXmlApi extends ExactManager implements ExactXmlApiInterface
         $this->exactXmlExportDir = $exactXmlExportDir;
 
         return $this;
+    }
+
+    public function clearAll()
+    {
+        $this->files->clear();
+        $this->data->clear();
+    }
+
+    public function clearFiles()
+    {
+        $this->files->clear();
+    }
+
+    public function clearData()
+    {
+        $this->data->clear();
+    }
+
+    /**
+     * @return mixed
+     */
+    public function haveErrors()
+    {
+        return true === $this->errors;
     }
 }
 
